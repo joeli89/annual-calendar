@@ -1,9 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { labelColorsLight, title2 } from '../design-system';
+
 export default function SearchScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Search</Text>
+      <Text style={[title2.regular, styles.text]}>Search</Text>
     </View>
   );
 }
@@ -15,6 +17,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    fontSize: 18,
+    color: labelColorsLight.primary,
   },
 });

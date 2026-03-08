@@ -5,6 +5,14 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import {
+  grays,
+  labelColorsLight,
+  strokes,
+  footnote,
+  subheadline,
+  title3,
+} from '../design-system';
 import { Event } from '../types/event';
 
 type EventCardProps = {
@@ -56,12 +64,12 @@ export function EventCard({ event, onPress }: EventCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: grays.white,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderWidth: .33,
+    borderColor: strokes.section,
     padding: 8,
-    shadowColor: '#000',
+    shadowColor: grays.black,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -79,7 +87,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 4,
     borderBottomRightRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: strokes.section,
     overflow: 'hidden',
   },
   mainImage: {
@@ -112,11 +120,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dateText: {
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: -0.23,
-    color: '#0d0d0d',
-    fontWeight: '600',
+    ...subheadline.emphasized,
+    color: labelColorsLight.primary,
   },
   headerRow: {
     flexDirection: 'row',
@@ -128,24 +133,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   titleText: {
-    fontSize: 20,
-    lineHeight: 25,
-    letterSpacing: -0.45,
-    color: '#0d0d0d',
-    fontWeight: '600',
+    ...title3.emphasized,
+    color: labelColorsLight.primary,
   },
   locationText: {
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: -0.23,
-    color: 'rgba(60, 60, 67, 0.6)',
+    ...subheadline.regular,
+    color: labelColorsLight.secondary,
   },
   mapWrapper: {
     width: 49,
     height: 49,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: strokes.section,
     overflow: 'hidden',
   },
   mapImage: {
@@ -153,24 +153,19 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   descriptionText: {
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: -0.08,
-    color: '#5d5d5d',
+    ...footnote.regular,
+    color: labelColorsLight.tertiary,
   },
   button: {
     height: 44,
     borderRadius: 999,
-    backgroundColor: '#0d0d0d',
+    backgroundColor: grays.black,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
   buttonText: {
-    fontSize: 15,
-    lineHeight: 24,
-    letterSpacing: -0.31,
-    color: '#ffffff',
-    fontWeight: '600',
+    ...subheadline.emphasized,
+    color: grays.white,
   },
 });

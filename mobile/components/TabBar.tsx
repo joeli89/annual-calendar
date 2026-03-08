@@ -15,7 +15,7 @@ export function TabBar() {
         <TriggerLabel>Events</TriggerLabel>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="discover">
-        <TriggerLabel>Discover</TriggerLabel>
+        <TriggerLabel>Saved</TriggerLabel>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search">
         <TriggerLabel>Search</TriggerLabel>

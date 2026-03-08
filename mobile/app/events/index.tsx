@@ -3,9 +3,9 @@
  * aligned to Figma (Annual-Calendar): no title, trailing pill button with menu icon only.
  */
 import {
-  FlatList,
   Platform,
   Pressable,
+  SectionList,
   StyleSheet,
   Text,
   View,
@@ -16,9 +16,36 @@ import { Stack } from 'expo-router';
 import { EventCard } from '../../components/EventCard';
 import { events } from '../../data/events';
 import { grays, headline, labelColorsLight, largeTitle } from '../../design-system';
+import { Event } from '../../types/event';
 
 /** Figma: Toolbar trailing button — 44pt pill, 17pt icon (labels/controls primary #404040). */
 const HEADER_BUTTON_ICON_COLOR = '#404040';
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+type Section = { title: { month: string; year: string }; data: Event[] };
+
+function buildSections(): Section[] {
+  const byKey = new Map<string, Event[]>();
+  for (const event of events) {
+    const key = `${event.year}-${event.month}`;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key)!.push(event);
+  }
+  const keys = Array.from(byKey.keys()).sort();
+  return keys.map((key) => {
+    const [year, month] = key.split('-').map(Number);
+    return {
+      title: { month: MONTH_NAMES[month - 1], year: String(year) },
+      data: byKey.get(key)!,
+    };
+  });
+}
+
+const SECTIONS = buildSections();
 
 export default function EventsScreen() {
   return (
@@ -49,17 +76,27 @@ export default function EventsScreen() {
         }}
       />
       <View style={styles.screen}>
-        <FlatList
-          data={events}
+        <SectionList
+          sections={SECTIONS}
           keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            <View style={styles.dateHeader}>
-              <Text style={[largeTitle.regular, styles.dateMonth]}>
-                February
-              </Text>
-              <Text style={[largeTitle.regular, styles.dateYear]}>2026</Text>
-            </View>
-          }
+          renderSectionHeader={({ section }) => {
+            const isFirstSection = section === SECTIONS[0];
+            return (
+              <View
+                style={[
+                  styles.dateHeader,
+                  !isFirstSection && styles.dateHeaderAfterSection,
+                ]}
+              >
+                <Text style={[largeTitle.regular, styles.dateMonth]}>
+                  {section.title.month}
+                </Text>
+                <Text style={[largeTitle.regular, styles.dateYear]}>
+                  {section.title.year}
+                </Text>
+              </View>
+            );
+          }}
           renderItem={({ item }) => (
             <EventCard
               event={item}
@@ -70,6 +107,7 @@ export default function EventsScreen() {
           contentInsetAdjustmentBehavior="automatic"
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
         />
       </View>
     </>
@@ -90,6 +128,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     marginBottom: 24,
+  },
+  dateHeaderAfterSection: {
+    marginTop: 40,
   },
   dateMonth: {
     color: labelColorsLight.primary,

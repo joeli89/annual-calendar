@@ -11,4 +11,8 @@ export type Event = {
   mainImageUrl: string;
   sideImageUrls: [string, string];
   mapImageUrl: string;
+  /** Month 1–12 for section grouping. */
+  month: number;
+  /** Year for section grouping. */
+  year: number;
 };

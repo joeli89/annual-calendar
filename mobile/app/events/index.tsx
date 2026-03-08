@@ -1,18 +1,53 @@
 /**
- * Intent: Render the Events list screen with a native iOS 26 liquid glass header.
- * Why: Stack provides native large title that collapses on scroll and gets liquid glass on iOS 26.
+ * Intent: Render the Events list screen with a native iOS 26 liquid glass header
+ * aligned to Figma (Annual-Calendar): no title, trailing pill button with menu icon only.
  */
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+import { Stack } from 'expo-router';
 
 import { EventCard } from '../../components/EventCard';
-import { EventsHeader } from '../../components/EventsHeader';
 import { events } from '../../data/events';
-import { grays, labelColorsLight, largeTitle } from '../../design-system';
+import { grays, headline, labelColorsLight, largeTitle } from '../../design-system';
+
+/** Figma: Toolbar trailing button — 44pt pill, 17pt icon (labels/controls primary #404040). */
+const HEADER_BUTTON_ICON_COLOR = '#404040';
 
 export default function EventsScreen() {
   return (
     <>
-      <EventsHeader />
+      <Stack.Screen
+        options={{
+          headerTitle: () => null,
+          headerLargeTitle: false,
+          headerRight: ({ tintColor }) => (
+            <Pressable
+              onPress={() => {}}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && styles.headerButtonPressed,
+              ]}
+              hitSlop={8}
+            >
+              <Text
+                style={[
+                  styles.headerButtonIcon,
+                  { color: tintColor ?? HEADER_BUTTON_ICON_COLOR },
+                ]}
+              >
+                ≡
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       <View style={styles.screen}>
         <FlatList
           data={events}
@@ -44,16 +79,16 @@ export default function EventsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: grays.white,
+    backgroundColor: '#f6f6f6',
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 48,
   },
   dateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
     marginBottom: 24,
   },
   dateMonth: {
@@ -64,5 +99,28 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 16,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'ios'
+      ? {}
+      : {
+          backgroundColor: grays.white,
+          shadowColor: grays.black,
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        }),
+  },
+  headerButtonPressed: {
+    opacity: 0.7,
+  },
+  headerButtonIcon: {
+    ...headline.regular,
   },
 });

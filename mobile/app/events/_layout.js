@@ -4,6 +4,23 @@
  */
 import { Stack } from 'expo-router';
 
+const SCREEN_BG = '#f6f6f6';
+
 export default function EventsLayout() {
-  return <Stack />;
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: SCREEN_BG },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen
+        name="index"
+        options={{
+          title: '',
+          headerTitle: () => null,
+        }}
+      />
+    </Stack>
+  );
 }

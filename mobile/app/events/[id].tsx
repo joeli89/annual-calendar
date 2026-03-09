@@ -4,8 +4,10 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
+  Dimensions,
+  FlatList,
   Image,
   Pressable,
   ScrollView,
@@ -32,7 +34,6 @@ import {
 } from '../../design-system';
 
 const HERO_HEIGHT = 485;
-const IMAGE_DOT_COUNT = 6;
 const INITIAL_DESCRIPTION_LINES = 2;
 const MONTH_INDEX: Record<string, number> = {
   january: 0,
@@ -160,6 +161,8 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const eventId = normalizeParam(id);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const heroListRef = useRef<FlatList<string> | null>(null);
 
   const event = useMemo(
     () => events.find((item) => item.id === eventId),
@@ -181,6 +184,12 @@ export default function EventDetailScreen() {
   }
 
   const description = `${event.description}\n\n${event.description}`;
+  const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
+  const infiniteHeroImages = useMemo(
+    () => [...heroImages, ...heroImages, ...heroImages],
+    [event.id]
+  );
+  const heroWidth = Dimensions.get('window').width;
 
   return (
     <>
@@ -196,7 +205,42 @@ export default function EventDetailScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heroSection}>
-            <Image source={{ uri: event.mainImageUrl }} style={styles.heroImage} />
+            <FlatList
+              ref={heroListRef}
+              data={infiniteHeroImages}
+              keyExtractor={(_, index) => `hero-${index}`}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={heroImages.length}
+              getItemLayout={(_, index) => ({
+                length: heroWidth,
+                offset: heroWidth * index,
+                index,
+              })}
+              onMomentumScrollEnd={(e) => {
+                const offset = e.nativeEvent.contentOffset.x;
+                const currentIndex = Math.round(offset / heroWidth);
+                const count = infiniteHeroImages.length;
+                setHeroIndex(currentIndex % heroImages.length);
+                if (currentIndex === 0) {
+                  heroListRef.current?.scrollToOffset({
+                    offset: heroWidth * heroImages.length,
+                    animated: false,
+                  });
+                } else if (currentIndex === count - 1) {
+                  heroListRef.current?.scrollToOffset({
+                    offset: heroWidth * (heroImages.length * 2 - 1),
+                    animated: false,
+                  });
+                }
+              }}
+              renderItem={({ item }) => (
+                <View style={[styles.heroSlide, { width: heroWidth }]}>
+                  <Image source={{ uri: item }} style={styles.heroImage} />
+                </View>
+              )}
+            />
 
             <View style={styles.topToolbar}>
               <Pressable
@@ -254,12 +298,14 @@ export default function EventDetailScreen() {
             </View>
 
             <View style={styles.pageControl}>
-              {Array.from({ length: IMAGE_DOT_COUNT }).map((_, index) => (
+              {heroImages.map((_, index) => (
                 <View
-                  key={`dot-${index + 1}`}
+                  key={`dot-${index}`}
                   style={[
                     styles.pageDot,
-                    index === 0 ? styles.pageDotActive : styles.pageDotInactive,
+                    index === heroIndex
+                      ? styles.pageDotActive
+                      : styles.pageDotInactive,
                   ]}
                 />
               ))}
@@ -377,6 +423,9 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT,
     position: 'relative',
   },
+  heroSlide: {
+    height: HERO_HEIGHT,
+  },
   heroImage: {
     width: '100%',
     height: '100%',
@@ -410,7 +459,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 32,
+    bottom: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

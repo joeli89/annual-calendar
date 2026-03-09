@@ -4,13 +4,12 @@
  */
 import { Stack } from 'expo-router';
 
-const SCREEN_BG = '#f6f6f6';
-
 export default function EventsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: SCREEN_BG },
+        headerTransparent: true,
+        headerStyle: { backgroundColor: 'transparent' },
         headerShadowVisible: false,
       }}
     >

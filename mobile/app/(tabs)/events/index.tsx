@@ -2,24 +2,29 @@
  * Intent: Render the Events list screen with a native iOS 26 liquid glass header
  * aligned to Figma (Annual-Calendar): no title, trailing pill button with menu icon only.
  */
+import { useRef } from 'react';
 import {
+  Animated,
   Platform,
   Pressable,
   SectionList,
   StyleSheet,
   Text,
   View,
+  ViewToken,
 } from 'react-native';
 
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 
-import { EventCard } from '../../components/EventCard';
-import { events } from '../../data/events';
-import { grays, headline, labelColorsLight, largeTitle } from '../../design-system';
-import { Event } from '../../types/event';
+import { EventCard } from '../../../components/EventCard';
+import { events } from '../../../data/events';
+import { grays, headline, labelColorsLight, largeTitle } from '../../../design-system';
+import { Event } from '../../../types/event';
 
 /** Figma: Toolbar trailing button — 44pt pill, 17pt icon (labels/controls primary #404040). */
 const HEADER_BUTTON_ICON_COLOR = '#404040';
+const CARD_FADE_IN_OFFSET = 16;
+const CARD_FADE_IN_DURATION = 280;
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -48,6 +53,68 @@ function buildSections(): Section[] {
 const SECTIONS = buildSections();
 
 export default function EventsScreen() {
+  const router = useRouter();
+  const animationValuesRef = useRef(
+    new Map<
+      string,
+      {
+        opacity: Animated.Value;
+        translateY: Animated.Value;
+        hasAnimated: boolean;
+      }
+    >()
+  );
+
+  const getCardAnimationValues = (eventId: string) => {
+    let values = animationValuesRef.current.get(eventId);
+
+    if (!values) {
+      values = {
+        opacity: new Animated.Value(0),
+        translateY: new Animated.Value(CARD_FADE_IN_OFFSET),
+        hasAnimated: false,
+      };
+      animationValuesRef.current.set(eventId, values);
+    }
+
+    return values;
+  };
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
+      viewableItems.forEach((viewableItem) => {
+        if (!viewableItem.isViewable) {
+          return;
+        }
+
+        const event = viewableItem.item as Event | undefined;
+        if (!event?.id) {
+          return;
+        }
+
+        const values = getCardAnimationValues(event.id);
+        if (values.hasAnimated) {
+          return;
+        }
+
+        values.hasAnimated = true;
+
+        Animated.parallel([
+          Animated.timing(values.opacity, {
+            toValue: 1,
+            duration: CARD_FADE_IN_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(values.translateY, {
+            toValue: 0,
+            duration: CARD_FADE_IN_DURATION,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    }
+  ).current;
+
   return (
     <>
       <Stack.Screen
@@ -98,16 +165,30 @@ export default function EventsScreen() {
             );
           }}
           renderItem={({ item }) => (
-            <EventCard
-              event={item}
-              onPress={(eventId) => console.log(`Event pressed: ${eventId}`)}
-            />
+            <Animated.View
+              style={[
+                styles.cardWrapper,
+                {
+                  opacity: getCardAnimationValues(item.id).opacity,
+                  transform: [
+                    { translateY: getCardAnimationValues(item.id).translateY },
+                  ],
+                },
+              ]}
+            >
+              <EventCard
+                event={item}
+                onPress={(eventId) => router.push(`/events/${eventId}`)}
+              />
+            </Animated.View>
           )}
           contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic"
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onViewableItemsChanged={onViewableItemsChanged}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
         />
       </View>
     </>
@@ -140,6 +221,9 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 16,
+  },
+  cardWrapper: {
+    width: '100%',
   },
   headerButton: {
     width: 44,

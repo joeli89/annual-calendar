@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { labelColorsLight, title2 } from '../design-system';
+import { labelColorsLight, title2 } from '../../design-system';
 
 export default function SearchScreen() {
   return (

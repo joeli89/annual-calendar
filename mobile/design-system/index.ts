@@ -37,3 +37,5 @@ export {
   caption2,
 } from './typography';
 export type { TextStyleName } from './typography';
+export { getAppTheme, useAppTheme } from './theme';
+export type { AppTheme } from './theme';

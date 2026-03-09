@@ -12,6 +12,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -25,14 +26,12 @@ import { events } from '../../data/events';
  */
 import {
   body,
-  grays,
-  labelColorsLight,
-  strokes,
   subheadline,
-  surfacesLight,
   title1,
   title2,
   title3,
+  useAppTheme,
+  type AppTheme,
 } from '../../design-system';
 
 const HERO_HEIGHT = 485;
@@ -129,7 +128,15 @@ function getGoogleMapsEmbedUrl(location: string) {
  * Intent: Render the event's start and end dates as a standalone summary card.
  * Why: Match the provided detail-screen layout without changing shared event data.
  */
-function EventDateCard({ dateRange }: { dateRange: string }) {
+type EventDetailStyles = ReturnType<typeof createStyles>;
+
+function EventDateCard({
+  dateRange,
+  styles,
+}: {
+  dateRange: string;
+  styles: EventDetailStyles;
+}) {
   const parsedRange = getEventDateRange(dateRange);
 
   return (
@@ -162,6 +169,8 @@ function EventDateCard({ dateRange }: { dateRange: string }) {
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const eventId = normalizeParam(id);
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const heroListRef = useRef<FlatList<string> | null>(null);
@@ -206,6 +215,7 @@ export default function EventDetailScreen() {
             headerBlurEffect: 'systemMaterial',
             headerShadowVisible: false,
             headerBackButtonDisplayMode: 'minimal',
+            headerTintColor: theme.labelColors.primary,
           }}
         />
         <View style={styles.notFoundScreen}>
@@ -219,6 +229,21 @@ export default function EventDetailScreen() {
   }
 
   const description = `${event.description}\n\n${event.description}`;
+  const shareMessage = [
+    event.title,
+    `${event.dateRange} • ${event.location}`,
+    event.description,
+  ].join('\n\n');
+  const handleShareEvent = async () => {
+    try {
+      await Share.share({
+        title: event.title,
+        message: shareMessage,
+      });
+    } catch (error) {
+      console.warn('Unable to open share sheet', error);
+    }
+  };
   const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
   const infiniteHeroImages = useMemo(
     () => [...heroImages, ...heroImages, ...heroImages],
@@ -288,45 +313,58 @@ export default function EventDetailScreen() {
           headerTransparent: true,
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
-          headerTintColor: labelColorsLight.primary,
+          headerTintColor: theme.labelColors.primary,
           scrollEdgeEffects: { top: 'automatic' },
-          headerRight: () => (
-            <View style={styles.nativeHeaderActions}>
-              <Pressable
-                accessibilityLabel="Share event"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => {}}
-                style={({ pressed }) => [
-                  styles.nativeHeaderButton,
-                  pressed && styles.toolbarButtonPressed,
-                ]}
-              >
-                <Ionicons
-                  color={labelColorsLight.primary}
-                  name="share-outline"
-                  size={18}
-                />
-              </Pressable>
-
-              <Pressable
-                accessibilityLabel="Save event"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => {}}
-                style={({ pressed }) => [
-                  styles.nativeHeaderButton,
-                  pressed && styles.toolbarButtonPressed,
-                ]}
-              >
-                <Ionicons
-                  color={labelColorsLight.primary}
-                  name="heart-outline"
-                  size={18}
-                />
-              </Pressable>
-            </View>
-          ),
+          unstable_headerRightItems: () => [
+            {
+              type: 'custom',
+              hidesSharedBackground: true,
+              element: (
+                <Pressable
+                  accessibilityLabel="Share event"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={handleShareEvent}
+                  style={({ pressed }) => [
+                    styles.nativeHeaderButton,
+                    pressed && styles.toolbarButtonPressed,
+                  ]}
+                >
+                  <Ionicons
+                    color={theme.labelColors.primary}
+                    name="share-outline"
+                    size={18}
+                  />
+                </Pressable>
+              ),
+            },
+            {
+              type: 'spacing',
+              spacing: 10,
+            },
+            {
+              type: 'custom',
+              hidesSharedBackground: true,
+              element: (
+                <Pressable
+                  accessibilityLabel="Save event"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => {}}
+                  style={({ pressed }) => [
+                    styles.nativeHeaderButton,
+                    pressed && styles.toolbarButtonPressed,
+                  ]}
+                >
+                  <Ionicons
+                    color={theme.labelColors.primary}
+                    name="heart-outline"
+                    size={18}
+                  />
+                </Pressable>
+              ),
+            },
+          ],
         }}
       />
       <View style={styles.screen}>
@@ -368,7 +406,7 @@ export default function EventDetailScreen() {
             </Animated.View>
 
             <Animated.View style={sheetSectionEntryStyles[1]}>
-              <EventDateCard dateRange={event.dateRange} />
+              <EventDateCard dateRange={event.dateRange} styles={styles} />
             </Animated.View>
 
             <View style={styles.separator} />
@@ -387,7 +425,7 @@ export default function EventDetailScreen() {
                       ]}
                     >
                       <Ionicons
-                        color={labelColorsLight.primary}
+                        color={theme.labelColors.primary}
                         name={action.icon}
                         size={18}
                       />
@@ -441,7 +479,11 @@ export default function EventDetailScreen() {
                     style={styles.mapWebView}
                   />
                   <View style={styles.mapPin}>
-                    <Ionicons color={grays.white} name="location" size={20} />
+                    <Ionicons
+                      color="#ffffff"
+                      name="location"
+                      size={20}
+                    />
                   </View>
                   <Pressable
                     accessibilityLabel="Expand map"
@@ -453,7 +495,7 @@ export default function EventDetailScreen() {
                     ]}
                   >
                     <Ionicons
-                      color={labelColorsLight.primary}
+                      color={theme.labelColors.primary}
                       name="expand-outline"
                       size={18}
                     />
@@ -534,285 +576,282 @@ export default function EventDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: surfacesLight.screen,
-    position: 'relative',
-  },
-  heroSection: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: HERO_HEIGHT,
-    zIndex: 0,
-    overflow: 'hidden',
-  },
-  heroParallaxLayer: {
-    height: '100%',
-  },
-  scrollView: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: HERO_HEIGHT - 36,
-    bottom: 0,
-    zIndex: 1,
-    overflow: 'visible',
-  },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-  heroSlide: {
-    height: HERO_HEIGHT,
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  nativeHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  nativeHeaderButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: surfacesLight.frostedWhite,
-  },
-  toolbarButtonPressed: {
-    opacity: 0.72,
-  },
-  pageControl: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  pageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-  },
-  pageDotActive: {
-    backgroundColor: labelColorsLight.primary,
-  },
-  pageDotInactive: {
-    backgroundColor: surfacesLight.dimmedBlack,
-  },
-  card: {
-    backgroundColor: grays.white,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
-    gap: 24,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.palette.screen,
+      position: 'relative',
     },
-  },
-  grabHandle: {
-    alignSelf: 'center',
-    width: 44,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: labelColorsLight.quaternary,
-    marginBottom: 12,
-  },
-  titleBlock: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    ...title1.emphasized,
-    color: labelColorsLight.primary,
-    textAlign: 'center',
-  },
-  location: {
-    ...subheadline.regular,
-    color: labelColorsLight.secondary,
-    textAlign: 'center',
-  },
-  dateCard: {
-    minHeight: 136,
-    borderRadius: 28,
-    backgroundColor: surfacesLight.cardMuted,
-    paddingHorizontal: 28,
-    paddingVertical: 24,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-  },
-  dateColumn: {
-    flex: 1,
-    /**
-     * Intent: Align date text consistently to the left.
-     * Why: Match the reference layout for the right column.
-     */
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  dateLabel: {
-    ...title3.emphasized,
-    color: labelColorsLight.primary,
-    textAlign: 'left',
-  },
-  dateValue: {
-    ...title3.regular,
-    color: labelColorsLight.primary,
-    textAlign: 'left',
-  },
-  dateMeta: {
-    /**
-     * Intent: Reduce year emphasis in the date card.
-     * Why: Match the reference by making the year smaller and secondary.
-     */
-    ...subheadline.regular,
-    color: labelColorsLight.secondary,
-    textAlign: 'left',
-  },
-  dateColumnEnd: {
-    alignItems: 'flex-end',
-  },
-  dateTextEnd: {
-    textAlign: 'right',
-  },
-  dateDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginHorizontal: 28,
-    backgroundColor: labelColorsLight.quaternary,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: labelColorsLight.quaternary,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-  },
-  actionCellWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionCell: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  actionCellPressed: {
-    opacity: 0.72,
-  },
-  actionLabel: {
-    ...subheadline.regular,
-    color: labelColorsLight.primary,
-    textAlign: 'center',
-  },
-  actionSeparator: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
-    backgroundColor: labelColorsLight.quaternary,
-  },
-  section: {
-    gap: 16,
-  },
-  description: {
-    ...body.regular,
-    color: labelColorsLight.primary,
-  },
-  readMoreButton: {
-    minHeight: 40,
-    borderRadius: 8,
-    backgroundColor: surfacesLight.control,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  readMoreButtonPressed: {
-    opacity: 0.72,
-  },
-  readMoreText: {
-    ...body.regular,
-    color: labelColorsLight.secondary,
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    ...title3.emphasized,
-    color: labelColorsLight.primary,
-  },
-  sectionLocation: {
-    ...subheadline.regular,
-    color: labelColorsLight.secondary,
-  },
-  mapCard: {
-    height: 348,
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: strokes.section,
-    position: 'relative',
-    backgroundColor: surfacesLight.placeholder,
-  },
-  mapImage: {
-    width: '100%',
-    height: '100%',
-  },
-  mapWebView: {
-    flex: 1,
-    backgroundColor: surfacesLight.placeholder,
-  },
-  mapPin: {
-    position: 'absolute',
-    top: '38%',
-    left: '48%',
-    marginLeft: -12,
-    marginTop: -12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapButton: {
-    position: 'absolute',
-    right: 9,
-    bottom: 9,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: surfacesLight.frostedWhite,
-  },
-  notFoundScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: surfacesLight.screen,
-    gap: 8,
-  },
-  notFoundTitle: {
-    ...title3.emphasized,
-    color: labelColorsLight.primary,
-    textAlign: 'center',
-  },
-  notFoundText: {
-    ...subheadline.regular,
-    color: labelColorsLight.secondary,
-    textAlign: 'center',
-  },
-});
+    heroSection: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: HERO_HEIGHT,
+      zIndex: 0,
+      overflow: 'hidden',
+    },
+    heroParallaxLayer: {
+      height: '100%',
+    },
+    scrollView: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: HERO_HEIGHT - 36,
+      bottom: 0,
+      zIndex: 1,
+      overflow: 'visible',
+    },
+    scrollContent: {
+      paddingBottom: 32,
+    },
+    heroSlide: {
+      height: HERO_HEIGHT,
+    },
+    heroImage: {
+      width: '100%',
+      height: '100%',
+    },
+    nativeHeaderButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.palette.frostedSurface,
+    },
+    toolbarButtonPressed: {
+      opacity: 0.72,
+    },
+    pageControl: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    pageDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+    },
+    pageDotActive: {
+      backgroundColor: theme.palette.pageDotActive,
+    },
+    pageDotInactive: {
+      backgroundColor: theme.palette.pageDotInactive,
+    },
+    card: {
+      backgroundColor: theme.palette.card,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 32,
+      gap: 24,
+      shadowColor: theme.palette.shadowColor,
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+    },
+    grabHandle: {
+      alignSelf: 'center',
+      width: 44,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor: theme.labelColors.quaternary,
+      marginBottom: 12,
+    },
+    titleBlock: {
+      alignItems: 'center',
+      gap: 8,
+    },
+    title: {
+      ...title1.emphasized,
+      color: theme.labelColors.primary,
+      textAlign: 'center',
+    },
+    location: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+      textAlign: 'center',
+    },
+    dateCard: {
+      minHeight: 136,
+      borderRadius: 28,
+      backgroundColor: theme.palette.cardMuted,
+      paddingHorizontal: 28,
+      paddingVertical: 24,
+      flexDirection: 'row',
+      alignItems: 'stretch',
+    },
+    dateColumn: {
+      flex: 1,
+      /**
+       * Intent: Align date text consistently to the left.
+       * Why: Match the reference layout for the right column.
+       */
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    dateLabel: {
+      ...title3.emphasized,
+      color: theme.labelColors.primary,
+      textAlign: 'left',
+    },
+    dateValue: {
+      ...title3.regular,
+      color: theme.labelColors.primary,
+      textAlign: 'left',
+    },
+    dateMeta: {
+      /**
+       * Intent: Reduce year emphasis in the date card.
+       * Why: Match the reference by making the year smaller and secondary.
+       */
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+      textAlign: 'left',
+    },
+    dateColumnEnd: {
+      alignItems: 'flex-end',
+    },
+    dateTextEnd: {
+      textAlign: 'right',
+    },
+    dateDivider: {
+      width: StyleSheet.hairlineWidth,
+      marginHorizontal: 28,
+      backgroundColor: theme.palette.separator,
+    },
+    separator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: theme.palette.separator,
+    },
+    actionsRow: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+    },
+    actionCellWrapper: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    actionCell: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 4,
+    },
+    actionCellPressed: {
+      opacity: 0.72,
+    },
+    actionLabel: {
+      ...subheadline.regular,
+      color: theme.labelColors.primary,
+      textAlign: 'center',
+    },
+    actionSeparator: {
+      width: StyleSheet.hairlineWidth,
+      alignSelf: 'stretch',
+      backgroundColor: theme.palette.separator,
+    },
+    section: {
+      gap: 16,
+    },
+    description: {
+      ...body.regular,
+      color: theme.labelColors.primary,
+    },
+    readMoreButton: {
+      minHeight: 40,
+      borderRadius: 8,
+      backgroundColor: theme.palette.control,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    readMoreButtonPressed: {
+      opacity: 0.72,
+    },
+    readMoreText: {
+      ...body.regular,
+      color: theme.labelColors.secondary,
+      textAlign: 'center',
+    },
+    sectionTitle: {
+      ...title3.emphasized,
+      color: theme.labelColors.primary,
+    },
+    sectionLocation: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+    },
+    mapCard: {
+      height: 348,
+      borderRadius: 24,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.palette.cardBorder,
+      position: 'relative',
+      backgroundColor: theme.palette.placeholder,
+    },
+    mapImage: {
+      width: '100%',
+      height: '100%',
+    },
+    mapWebView: {
+      flex: 1,
+      backgroundColor: theme.palette.placeholder,
+    },
+    mapPin: {
+      position: 'absolute',
+      top: '38%',
+      left: '48%',
+      marginLeft: -12,
+      marginTop: -12,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mapButton: {
+      position: 'absolute',
+      right: 9,
+      bottom: 9,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.palette.frostedSurface,
+    },
+    notFoundScreen: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+      backgroundColor: theme.palette.screen,
+      gap: 8,
+    },
+    notFoundTitle: {
+      ...title3.emphasized,
+      color: theme.labelColors.primary,
+      textAlign: 'center',
+    },
+    notFoundText: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+      textAlign: 'center',
+    },
+  });
+}

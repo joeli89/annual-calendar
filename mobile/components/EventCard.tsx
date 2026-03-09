@@ -2,16 +2,15 @@
  * Intent: Render a premium event card UI.
  * Why: Reuse consistent card layout across the Events list.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
-  grays,
-  labelColorsLight,
-  strokes,
   footnote,
   subheadline,
   title3,
+  useAppTheme,
+  type AppTheme,
 } from '../design-system';
 import { Event } from '../types/event';
 
@@ -21,6 +20,9 @@ type EventCardProps = {
 };
 
 export function EventCard({ event, onPress }: EventCardProps) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View style={styles.card}>
       <View style={styles.imageRow}>
@@ -62,110 +64,112 @@ export function EventCard({ event, onPress }: EventCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: grays.white,
-    borderRadius: 24,
-    borderWidth: .33,
-    borderColor: strokes.section,
-    padding: 8,
-    shadowColor: grays.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    paddingBottom: 12,
-  },
-  imageRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  mainImageWrapper: {
-    flex: 2,
-    aspectRatio: 232 / 256,
-    borderRadius: 16,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
-    borderWidth: 1,
-    borderColor: strokes.section,
-    overflow: 'hidden',
-  },
-  mainImage: {
-    width: '100%',
-    height: '100%',
-  },
-  sideImages: {
-    flex: 1,
-    gap: 4,
-  },
-  sideImageTop: {
-    flex: 1,
-    borderRadius: 4,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-  },
-  sideImageBottom: {
-    flex: 1,
-    borderRadius: 4,
-    borderBottomRightRadius: 16,
-    overflow: 'hidden',
-  },
-  sideImage: {
-    width: '100%',
-    height: '100%',
-  },
-  content: {
-    paddingTop: 16,
-    paddingHorizontal: 8,
-    gap: 12,
-  },
-  dateText: {
-    ...subheadline.emphasized,
-    color: labelColorsLight.primary,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  titleBlock: {
-    flex: 1,
-    gap: 4,
-  },
-  titleText: {
-    ...title3.emphasized,
-    color: labelColorsLight.primary,
-  },
-  locationText: {
-    ...subheadline.regular,
-    color: labelColorsLight.secondary,
-  },
-  mapWrapper: {
-    width: 49,
-    height: 49,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: strokes.section,
-    overflow: 'hidden',
-  },
-  mapImage: {
-    width: '100%',
-    height: '100%',
-  },
-  descriptionText: {
-    ...footnote.regular,
-    color: labelColorsLight.tertiary,
-  },
-  button: {
-    height: 44,
-    borderRadius: 999,
-    backgroundColor: grays.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  buttonText: {
-    ...subheadline.emphasized,
-    color: grays.white,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: theme.palette.card,
+      borderRadius: 24,
+      borderWidth: 0.33,
+      borderColor: theme.palette.cardBorder,
+      padding: 8,
+      shadowColor: theme.palette.shadowColor,
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+      paddingBottom: 12,
+    },
+    imageRow: {
+      flexDirection: 'row',
+      gap: 4,
+    },
+    mainImageWrapper: {
+      flex: 2,
+      aspectRatio: 232 / 256,
+      borderRadius: 16,
+      borderTopRightRadius: 4,
+      borderBottomRightRadius: 4,
+      borderWidth: 1,
+      borderColor: theme.palette.cardBorder,
+      overflow: 'hidden',
+    },
+    mainImage: {
+      width: '100%',
+      height: '100%',
+    },
+    sideImages: {
+      flex: 1,
+      gap: 4,
+    },
+    sideImageTop: {
+      flex: 1,
+      borderRadius: 4,
+      borderTopRightRadius: 16,
+      overflow: 'hidden',
+    },
+    sideImageBottom: {
+      flex: 1,
+      borderRadius: 4,
+      borderBottomRightRadius: 16,
+      overflow: 'hidden',
+    },
+    sideImage: {
+      width: '100%',
+      height: '100%',
+    },
+    content: {
+      paddingTop: 16,
+      paddingHorizontal: 8,
+      gap: 12,
+    },
+    dateText: {
+      ...subheadline.emphasized,
+      color: theme.labelColors.primary,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    titleBlock: {
+      flex: 1,
+      gap: 4,
+    },
+    titleText: {
+      ...title3.emphasized,
+      color: theme.labelColors.primary,
+    },
+    locationText: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+    },
+    mapWrapper: {
+      width: 49,
+      height: 49,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.palette.cardBorder,
+      overflow: 'hidden',
+    },
+    mapImage: {
+      width: '100%',
+      height: '100%',
+    },
+    descriptionText: {
+      ...footnote.regular,
+      color: theme.labelColors.tertiary,
+    },
+    button: {
+      height: 44,
+      borderRadius: 999,
+      backgroundColor: theme.palette.primaryButtonBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 4,
+    },
+    buttonText: {
+      ...subheadline.emphasized,
+      color: theme.palette.primaryButtonText,
+    },
+  });
+}

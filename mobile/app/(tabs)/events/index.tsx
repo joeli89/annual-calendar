@@ -2,7 +2,8 @@
  * Intent: Render the Events list screen with a native iOS 26 liquid glass header
  * aligned to Figma (Annual-Calendar): no title, trailing pill button with menu icon only.
  */
-import { useMemo, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useRef } from 'react';
 import {
   Animated,
   Platform,
@@ -19,7 +20,6 @@ import { Stack, useRouter } from 'expo-router';
 import { EventCard } from '../../../components/EventCard';
 import { events } from '../../../data/events';
 import {
-  headline,
   largeTitle,
   useAppTheme,
   type AppTheme,
@@ -136,14 +136,11 @@ export default function EventsScreen() {
               ]}
               hitSlop={8}
             >
-              <Text
-                style={[
-                  styles.headerButtonIcon,
-                  { color: tintColor ?? theme.palette.headerButtonFallback },
-                ]}
-              >
-                ≡
-              </Text>
+              <Ionicons
+                name="filter-outline"
+                size={24}
+                color={tintColor ?? theme.palette.headerButtonFallback}
+              />
             </Pressable>
           ),
         }}
@@ -251,9 +248,6 @@ function createStyles(theme: AppTheme) {
     },
     headerButtonPressed: {
       opacity: 0.7,
-    },
-    headerButtonIcon: {
-      ...headline.regular,
     },
   });
 }

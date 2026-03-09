@@ -333,7 +333,7 @@ export default function EventDetailScreen() {
                   <Ionicons
                     color={theme.labelColors.primary}
                     name="share-outline"
-                    size={18}
+                    size={24}
                   />
                 </Pressable>
               ),
@@ -620,7 +620,7 @@ function createStyles(theme: AppTheme) {
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.palette.frostedSurface,
+      padding: 0,
     },
     toolbarButtonPressed: {
       opacity: 0.72,

@@ -3,14 +3,14 @@
  * Why: Match the Figma event detail layout without changing shared data contracts.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -158,12 +158,12 @@ function EventDateCard({ dateRange }: { dateRange: string }) {
 }
 
 export default function EventDetailScreen() {
-  const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const eventId = normalizeParam(id);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const heroListRef = useRef<FlatList<string> | null>(null);
+  const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   const event = useMemo(
     () => events.find((item) => item.id === eventId),
@@ -173,7 +173,16 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Event' }} />
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            title: 'Event',
+            headerTransparent: true,
+            headerBlurEffect: 'systemMaterial',
+            headerShadowVisible: false,
+            headerBackButtonDisplayMode: 'minimal',
+          }}
+        />
         <View style={styles.notFoundScreen}>
           <Text style={styles.notFoundTitle}>Event not found</Text>
           <Text style={styles.notFoundText}>
@@ -191,86 +200,70 @@ export default function EventDetailScreen() {
     [event.id]
   );
   const heroWidth = Dimensions.get('window').width;
+  const sheetShadowOpacity = sheetScrollY.interpolate({
+    inputRange: [0, 64],
+    outputRange: [0.06, 0.18],
+    extrapolate: 'clamp',
+  });
+  const sheetShadowRadius = sheetScrollY.interpolate({
+    inputRange: [0, 64],
+    outputRange: [8, 16],
+    extrapolate: 'clamp',
+  });
+  const sheetElevation = sheetScrollY.interpolate({
+    inputRange: [0, 64],
+    outputRange: [2, 10],
+    extrapolate: 'clamp',
+  });
+  const grabHandleOpacity = sheetScrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0.45],
+    extrapolate: 'clamp',
+  });
+  const grabHandleScale = sheetScrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0.86],
+    extrapolate: 'clamp',
+  });
+  const heroParallaxTranslateY = sheetScrollY.interpolate({
+    inputRange: [0, HERO_HEIGHT],
+    outputRange: [0, -HERO_HEIGHT * 0.22],
+    extrapolate: 'clamp',
+  });
+  const heroParallaxScale = sheetScrollY.interpolate({
+    inputRange: [0, HERO_HEIGHT],
+    outputRange: [1, 1.08],
+    extrapolate: 'clamp',
+  });
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerShown: false,
-        }}
-      />
-      <View style={styles.screen}>
-        <View style={styles.heroSection}>
-          <FlatList
-            ref={heroListRef}
-            data={infiniteHeroImages}
-            keyExtractor={(_, index) => `hero-${index}`}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            initialScrollIndex={heroImages.length}
-            getItemLayout={(_, index) => ({
-              length: heroWidth,
-              offset: heroWidth * index,
-              index,
-            })}
-            onMomentumScrollEnd={(e) => {
-              const offset = e.nativeEvent.contentOffset.x;
-              const currentIndex = Math.round(offset / heroWidth);
-              const count = infiniteHeroImages.length;
-              setHeroIndex(currentIndex % heroImages.length);
-              if (currentIndex === 0) {
-                heroListRef.current?.scrollToOffset({
-                  offset: heroWidth * heroImages.length,
-                  animated: false,
-                });
-              } else if (currentIndex === count - 1) {
-                heroListRef.current?.scrollToOffset({
-                  offset: heroWidth * (heroImages.length * 2 - 1),
-                  animated: false,
-                });
-              }
-            }}
-            renderItem={({ item }) => (
-              <View style={[styles.heroSlide, { width: heroWidth }]}>
-                <Image source={{ uri: item }} style={styles.heroImage} />
-              </View>
-            )}
-          />
-
-          <View style={styles.topToolbar}>
-            <Pressable
-              accessibilityLabel="Go back"
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={() => router.back()}
-              style={({ pressed }) => [
-                styles.toolbarButton,
-                pressed && styles.toolbarButtonPressed,
-              ]}
-            >
-              <Ionicons
-                color={labelColorsLight.primary}
-                name="chevron-back"
-                size={22}
-              />
-            </Pressable>
-
-            <View style={styles.toolbarTrailing}>
+          headerShown: true,
+          title: '',
+          headerTitle: () => null,
+          headerTransparent: true,
+          headerShadowVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
+          headerTintColor: labelColorsLight.primary,
+          scrollEdgeEffects: { top: 'automatic' },
+          headerRight: () => (
+            <View style={styles.nativeHeaderActions}>
               <Pressable
                 accessibilityLabel="Share event"
                 accessibilityRole="button"
                 hitSlop={8}
                 onPress={() => {}}
                 style={({ pressed }) => [
-                  styles.toolbarButton,
+                  styles.nativeHeaderButton,
                   pressed && styles.toolbarButtonPressed,
                 ]}
               >
                 <Ionicons
                   color={labelColorsLight.primary}
                   name="share-outline"
-                  size={20}
+                  size={18}
                 />
               </Pressable>
 
@@ -280,41 +273,51 @@ export default function EventDetailScreen() {
                 hitSlop={8}
                 onPress={() => {}}
                 style={({ pressed }) => [
-                  styles.toolbarButton,
+                  styles.nativeHeaderButton,
                   pressed && styles.toolbarButtonPressed,
                 ]}
               >
                 <Ionicons
                   color={labelColorsLight.primary}
                   name="heart-outline"
-                  size={20}
+                  size={18}
                 />
               </Pressable>
             </View>
-          </View>
-
-          <View style={styles.pageControl}>
-            {heroImages.map((_, index) => (
-              <View
-                key={`dot-${index}`}
-                style={[
-                  styles.pageDot,
-                  index === heroIndex
-                    ? styles.pageDotActive
-                    : styles.pageDotInactive,
-                ]}
-              />
-            ))}
-          </View>
-        </View>
-
-        <ScrollView
+          ),
+        }}
+      />
+      <View style={styles.screen}>
+        <Animated.ScrollView
           bounces={false}
           contentContainerStyle={styles.scrollContent}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: sheetScrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           style={styles.scrollView}
         >
-          <View style={styles.card}>
+          <Animated.View
+            style={[
+              styles.card,
+              {
+                shadowOpacity: sheetShadowOpacity,
+                shadowRadius: sheetShadowRadius,
+                elevation: sheetElevation,
+              },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.grabHandle,
+                {
+                  opacity: grabHandleOpacity,
+                  transform: [{ scaleX: grabHandleScale }],
+                },
+              ]}
+            />
             <View style={styles.titleBlock}>
               <Text style={styles.title}>{event.title}</Text>
               <Text style={styles.location}>{event.location}</Text>
@@ -406,8 +409,73 @@ export default function EventDetailScreen() {
                 </Pressable>
               </View>
             </View>
+          </Animated.View>
+        </Animated.ScrollView>
+
+        <View style={styles.heroSection}>
+          <Animated.View
+            style={[
+              styles.heroParallaxLayer,
+              {
+                transform: [
+                  { translateY: heroParallaxTranslateY },
+                  { scale: heroParallaxScale },
+                ],
+              },
+            ]}
+          >
+            <FlatList
+              ref={heroListRef}
+              data={infiniteHeroImages}
+              keyExtractor={(_, index) => `hero-${index}`}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={heroImages.length}
+              getItemLayout={(_, index) => ({
+                length: heroWidth,
+                offset: heroWidth * index,
+                index,
+              })}
+              onMomentumScrollEnd={(e) => {
+                const offset = e.nativeEvent.contentOffset.x;
+                const currentIndex = Math.round(offset / heroWidth);
+                const count = infiniteHeroImages.length;
+                setHeroIndex(currentIndex % heroImages.length);
+                if (currentIndex === 0) {
+                  heroListRef.current?.scrollToOffset({
+                    offset: heroWidth * heroImages.length,
+                    animated: false,
+                  });
+                } else if (currentIndex === count - 1) {
+                  heroListRef.current?.scrollToOffset({
+                    offset: heroWidth * (heroImages.length * 2 - 1),
+                    animated: false,
+                  });
+                }
+              }}
+              renderItem={({ item }) => (
+                <View style={[styles.heroSlide, { width: heroWidth }]}>
+                  <Image source={{ uri: item }} style={styles.heroImage} />
+                </View>
+              )}
+            />
+          </Animated.View>
+
+          <View style={styles.pageControl}>
+            {heroImages.map((_, index) => (
+              <View
+                key={`dot-${index}`}
+                style={[
+                  styles.pageDot,
+                  index === heroIndex
+                    ? styles.pageDotActive
+                    : styles.pageDotInactive,
+                ]}
+              />
+            ))}
           </View>
-        </ScrollView>
+        </View>
       </View>
     </>
   );
@@ -426,6 +494,10 @@ const styles = StyleSheet.create({
     right: 0,
     height: HERO_HEIGHT,
     zIndex: 0,
+    overflow: 'hidden',
+  },
+  heroParallaxLayer: {
+    height: '100%',
   },
   scrollView: {
     position: 'absolute',
@@ -446,24 +518,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  topToolbar: {
-    position: 'absolute',
-    top: 62,
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  toolbarTrailing: {
+  nativeHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  toolbarButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  nativeHeaderButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: surfacesLight.frostedWhite,
@@ -497,9 +560,22 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 16,
     paddingBottom: 32,
     gap: 24,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+  },
+  grabHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: labelColorsLight.quaternary,
+    marginBottom: 12,
   },
   titleBlock: {
     alignItems: 'center',

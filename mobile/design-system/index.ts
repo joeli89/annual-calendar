@@ -10,6 +10,7 @@ export {
   grays,
   colors,
   strokes,
+  surfacesLight,
 } from './colors';
 export type {
   BackgroundKey,
@@ -19,6 +20,7 @@ export type {
   GrayKey,
   ColorKey,
   StrokeKey,
+  SurfaceLightKey,
 } from './colors';
 export {
   textStyles,

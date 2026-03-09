@@ -28,6 +28,7 @@ import {
   labelColorsLight,
   strokes,
   subheadline,
+  surfacesLight,
   title1,
   title2,
   title3,
@@ -199,55 +200,68 @@ export default function EventDetailScreen() {
         }}
       />
       <View style={styles.screen}>
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.heroSection}>
-            <FlatList
-              ref={heroListRef}
-              data={infiniteHeroImages}
-              keyExtractor={(_, index) => `hero-${index}`}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              initialScrollIndex={heroImages.length}
-              getItemLayout={(_, index) => ({
-                length: heroWidth,
-                offset: heroWidth * index,
-                index,
-              })}
-              onMomentumScrollEnd={(e) => {
-                const offset = e.nativeEvent.contentOffset.x;
-                const currentIndex = Math.round(offset / heroWidth);
-                const count = infiniteHeroImages.length;
-                setHeroIndex(currentIndex % heroImages.length);
-                if (currentIndex === 0) {
-                  heroListRef.current?.scrollToOffset({
-                    offset: heroWidth * heroImages.length,
-                    animated: false,
-                  });
-                } else if (currentIndex === count - 1) {
-                  heroListRef.current?.scrollToOffset({
-                    offset: heroWidth * (heroImages.length * 2 - 1),
-                    animated: false,
-                  });
-                }
-              }}
-              renderItem={({ item }) => (
-                <View style={[styles.heroSlide, { width: heroWidth }]}>
-                  <Image source={{ uri: item }} style={styles.heroImage} />
-                </View>
-              )}
-            />
+        <View style={styles.heroSection}>
+          <FlatList
+            ref={heroListRef}
+            data={infiniteHeroImages}
+            keyExtractor={(_, index) => `hero-${index}`}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={heroImages.length}
+            getItemLayout={(_, index) => ({
+              length: heroWidth,
+              offset: heroWidth * index,
+              index,
+            })}
+            onMomentumScrollEnd={(e) => {
+              const offset = e.nativeEvent.contentOffset.x;
+              const currentIndex = Math.round(offset / heroWidth);
+              const count = infiniteHeroImages.length;
+              setHeroIndex(currentIndex % heroImages.length);
+              if (currentIndex === 0) {
+                heroListRef.current?.scrollToOffset({
+                  offset: heroWidth * heroImages.length,
+                  animated: false,
+                });
+              } else if (currentIndex === count - 1) {
+                heroListRef.current?.scrollToOffset({
+                  offset: heroWidth * (heroImages.length * 2 - 1),
+                  animated: false,
+                });
+              }
+            }}
+            renderItem={({ item }) => (
+              <View style={[styles.heroSlide, { width: heroWidth }]}>
+                <Image source={{ uri: item }} style={styles.heroImage} />
+              </View>
+            )}
+          />
 
-            <View style={styles.topToolbar}>
+          <View style={styles.topToolbar}>
+            <Pressable
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => router.back()}
+              style={({ pressed }) => [
+                styles.toolbarButton,
+                pressed && styles.toolbarButtonPressed,
+              ]}
+            >
+              <Ionicons
+                color={labelColorsLight.primary}
+                name="chevron-back"
+                size={22}
+              />
+            </Pressable>
+
+            <View style={styles.toolbarTrailing}>
               <Pressable
-                accessibilityLabel="Go back"
+                accessibilityLabel="Share event"
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => router.back()}
+                onPress={() => {}}
                 style={({ pressed }) => [
                   styles.toolbarButton,
                   pressed && styles.toolbarButtonPressed,
@@ -255,63 +269,51 @@ export default function EventDetailScreen() {
               >
                 <Ionicons
                   color={labelColorsLight.primary}
-                  name="chevron-back"
-                  size={22}
+                  name="share-outline"
+                  size={20}
                 />
               </Pressable>
 
-              <View style={styles.toolbarTrailing}>
-                <Pressable
-                  accessibilityLabel="Share event"
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={() => {}}
-                  style={({ pressed }) => [
-                    styles.toolbarButton,
-                    pressed && styles.toolbarButtonPressed,
-                  ]}
-                >
-                  <Ionicons
-                    color={labelColorsLight.primary}
-                    name="share-outline"
-                    size={20}
-                  />
-                </Pressable>
-
-                <Pressable
-                  accessibilityLabel="Save event"
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={() => {}}
-                  style={({ pressed }) => [
-                    styles.toolbarButton,
-                    pressed && styles.toolbarButtonPressed,
-                  ]}
-                >
-                  <Ionicons
-                    color={labelColorsLight.primary}
-                    name="heart-outline"
-                    size={20}
-                  />
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={styles.pageControl}>
-              {heroImages.map((_, index) => (
-                <View
-                  key={`dot-${index}`}
-                  style={[
-                    styles.pageDot,
-                    index === heroIndex
-                      ? styles.pageDotActive
-                      : styles.pageDotInactive,
-                  ]}
+              <Pressable
+                accessibilityLabel="Save event"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => {}}
+                style={({ pressed }) => [
+                  styles.toolbarButton,
+                  pressed && styles.toolbarButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  color={labelColorsLight.primary}
+                  name="heart-outline"
+                  size={20}
                 />
-              ))}
+              </Pressable>
             </View>
           </View>
 
+          <View style={styles.pageControl}>
+            {heroImages.map((_, index) => (
+              <View
+                key={`dot-${index}`}
+                style={[
+                  styles.pageDot,
+                  index === heroIndex
+                    ? styles.pageDotActive
+                    : styles.pageDotInactive,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+
+        <ScrollView
+          bounces={false}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}
+        >
           <View style={styles.card}>
             <View style={styles.titleBlock}>
               <Text style={styles.title}>{event.title}</Text>
@@ -414,14 +416,28 @@ export default function EventDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f6f6f6',
-  },
-  content: {
-    paddingBottom: 32,
+    backgroundColor: surfacesLight.screen,
+    position: 'relative',
   },
   heroSection: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     height: HERO_HEIGHT,
-    position: 'relative',
+    zIndex: 0,
+  },
+  scrollView: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: HERO_HEIGHT - 36,
+    bottom: 0,
+    zIndex: 1,
+    overflow: 'visible',
+  },
+  scrollContent: {
+    paddingBottom: 32,
   },
   heroSlide: {
     height: HERO_HEIGHT,
@@ -450,7 +466,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: surfacesLight.frostedWhite,
   },
   toolbarButtonPressed: {
     opacity: 0.72,
@@ -474,10 +490,9 @@ const styles = StyleSheet.create({
     backgroundColor: labelColorsLight.primary,
   },
   pageDotInactive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: surfacesLight.dimmedBlack,
   },
   card: {
-    marginTop: -36,
     backgroundColor: grays.white,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
@@ -503,7 +518,7 @@ const styles = StyleSheet.create({
   dateCard: {
     minHeight: 136,
     borderRadius: 28,
-    backgroundColor: '#f2f2f2',
+    backgroundColor: surfacesLight.cardMuted,
     paddingHorizontal: 28,
     paddingVertical: 24,
     flexDirection: 'row',
@@ -592,7 +607,7 @@ const styles = StyleSheet.create({
   readMoreButton: {
     minHeight: 40,
     borderRadius: 8,
-    backgroundColor: '#f2f2f7',
+    backgroundColor: surfacesLight.control,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
@@ -620,7 +635,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: strokes.section,
     position: 'relative',
-    backgroundColor: '#d9d9d9',
+    backgroundColor: surfacesLight.placeholder,
   },
   mapImage: {
     width: '100%',
@@ -628,7 +643,7 @@ const styles = StyleSheet.create({
   },
   mapWebView: {
     flex: 1,
-    backgroundColor: '#d9d9d9',
+    backgroundColor: surfacesLight.placeholder,
   },
   mapPin: {
     position: 'absolute',
@@ -651,14 +666,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: surfacesLight.frostedWhite,
   },
   notFoundScreen: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: '#f6f6f6',
+    backgroundColor: surfacesLight.screen,
     gap: 8,
   },
   notFoundTitle: {

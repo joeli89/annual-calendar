@@ -68,6 +68,16 @@ export const strokes = {
   section: '#00000066',
 } as const;
 
+/** Light-theme surface fills (screens, cards, controls) */
+export const surfacesLight = {
+  screen: '#f6f6f6',
+  cardMuted: '#f2f2f2',
+  control: '#f2f2f7',
+  placeholder: '#d9d9d9',
+  frostedWhite: 'rgba(255,255,255,0.86)',
+  dimmedBlack: 'rgba(0, 0, 0, 0.3)',
+} as const;
+
 export type BackgroundKey = keyof typeof backgrounds;
 export type LabelColorKey = keyof typeof labelColors;
 export type LabelColorLightKey = keyof typeof labelColorsLight;
@@ -75,3 +85,4 @@ export type SeparatorKey = keyof typeof separators;
 export type GrayKey = keyof typeof grays;
 export type ColorKey = keyof typeof colors;
 export type StrokeKey = keyof typeof strokes;
+export type SurfaceLightKey = keyof typeof surfacesLight;

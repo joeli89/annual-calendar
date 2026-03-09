@@ -19,11 +19,8 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
+import { EventDateCard } from '../../components/EventDateCard';
 import { events } from '../../data/events';
-/**
- * Intent: Pull in title2 typography for date metadata text.
- * Why: Prevent runtime access errors and match the design scale.
- */
 import {
   body,
   subheadline,
@@ -37,21 +34,6 @@ import {
 const HERO_HEIGHT = 485;
 const INITIAL_DESCRIPTION_LINES = 2;
 const SHEET_ENTRY_SECTION_COUNT = 5;
-const MONTH_INDEX: Record<string, number> = {
-  january: 0,
-  february: 1,
-  march: 2,
-  april: 3,
-  may: 4,
-  june: 5,
-  july: 6,
-  august: 7,
-  september: 8,
-  october: 9,
-  november: 10,
-  december: 11,
-};
-
 type LinkAction = {
   key: 'website' | 'instagram' | 'x';
   label: string;
@@ -68,102 +50,8 @@ function normalizeParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function removeOrdinalSuffix(value: string) {
-  return value.replace(/(st|nd|rd|th)$/i, '');
-}
-
-function formatDayMonth(date: Date) {
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(date);
-}
-
-function formatYear(date: Date) {
-  return new Intl.DateTimeFormat('en-GB', {
-    year: 'numeric',
-  }).format(date);
-}
-
-function getEventDateRange(dateRange: string) {
-  const match = dateRange.match(
-    /^(\d{1,2}(?:st|nd|rd|th)?)\s+to\s+(\d{1,2}(?:st|nd|rd|th)?)\s+([A-Za-z]+)\s+(\d{4})$/i
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const [, startDayToken, endDayToken, monthToken, yearToken] = match;
-  const monthIndex = MONTH_INDEX[monthToken.toLowerCase()];
-
-  if (monthIndex === undefined) {
-    return null;
-  }
-
-  const startDay = Number(removeOrdinalSuffix(startDayToken));
-  const endDay = Number(removeOrdinalSuffix(endDayToken));
-  const year = Number(yearToken);
-
-  if (
-    Number.isNaN(startDay) ||
-    Number.isNaN(endDay) ||
-    Number.isNaN(year)
-  ) {
-    return null;
-  }
-
-  return {
-    start: new Date(year, monthIndex, startDay),
-    end: new Date(year, monthIndex, endDay),
-  };
-}
-
 function getGoogleMapsEmbedUrl(location: string) {
   return `https://www.google.com/maps?q=${encodeURIComponent(location)}&z=13&output=embed`;
-}
-
-/**
- * Intent: Render the event's start and end dates as a standalone summary card.
- * Why: Match the provided detail-screen layout without changing shared event data.
- */
-type EventDetailStyles = ReturnType<typeof createStyles>;
-
-function EventDateCard({
-  dateRange,
-  styles,
-}: {
-  dateRange: string;
-  styles: EventDetailStyles;
-}) {
-  const parsedRange = getEventDateRange(dateRange);
-
-  return (
-    <View style={styles.dateCard}>
-      <View style={styles.dateColumn}>
-        <Text style={styles.dateLabel}>Start</Text>
-        <Text style={styles.dateValue}>
-          {parsedRange ? formatDayMonth(parsedRange.start) : dateRange}
-        </Text>
-        <Text style={styles.dateMeta}>
-          {parsedRange ? formatYear(parsedRange.start) : ' '}
-        </Text>
-      </View>
-
-      <View style={styles.dateDivider} />
-
-      <View style={[styles.dateColumn, styles.dateColumnEnd]}>
-        <Text style={[styles.dateLabel, styles.dateTextEnd]}>Ends</Text>
-        <Text style={[styles.dateValue, styles.dateTextEnd]}>
-          {parsedRange ? formatDayMonth(parsedRange.end) : 'Date unavailable'}
-        </Text>
-        <Text style={[styles.dateMeta, styles.dateTextEnd]}>
-          {parsedRange ? formatYear(parsedRange.end) : ' '}
-        </Text>
-      </View>
-    </View>
-  );
 }
 
 export default function EventDetailScreen() {
@@ -315,56 +203,42 @@ export default function EventDetailScreen() {
           headerBackButtonDisplayMode: 'minimal',
           headerTintColor: theme.labelColors.primary,
           scrollEdgeEffects: { top: 'automatic' },
-          unstable_headerRightItems: () => [
-            {
-              type: 'custom',
-              hidesSharedBackground: true,
-              element: (
-                <Pressable
-                  accessibilityLabel="Share event"
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={handleShareEvent}
-                  style={({ pressed }) => [
-                    styles.nativeHeaderButton,
-                    pressed && styles.toolbarButtonPressed,
-                  ]}
-                >
-                  <Ionicons
-                    color={theme.labelColors.primary}
-                    name="share-outline"
-                    size={24}
-                  />
-                </Pressable>
-              ),
-            },
-            {
-              type: 'spacing',
-              spacing: 10,
-            },
-            {
-              type: 'custom',
-              hidesSharedBackground: true,
-              element: (
-                <Pressable
-                  accessibilityLabel="Save event"
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={() => {}}
-                  style={({ pressed }) => [
-                    styles.nativeHeaderButton,
-                    pressed && styles.toolbarButtonPressed,
-                  ]}
-                >
-                  <Ionicons
-                    color={theme.labelColors.primary}
-                    name="heart-outline"
-                    size={18}
-                  />
-                </Pressable>
-              ),
-            },
-          ],
+          headerRight: () => (
+            <View style={styles.headerRightContainer}>
+              <Pressable
+                accessibilityLabel="Share event"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={handleShareEvent}
+                style={({ pressed }) => [
+                  styles.nativeHeaderButton,
+                  pressed && styles.toolbarButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  color={theme.labelColors.primary}
+                  name="share-outline"
+                  size={24}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Save event"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => {}}
+                style={({ pressed }) => [
+                  styles.nativeHeaderButton,
+                  pressed && styles.toolbarButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  color={theme.labelColors.primary}
+                  name="heart-outline"
+                  size={24}
+                />
+              </Pressable>
+            </View>
+          ),
         }}
       />
       <View style={styles.screen}>
@@ -406,7 +280,7 @@ export default function EventDetailScreen() {
             </Animated.View>
 
             <Animated.View style={sheetSectionEntryStyles[1]}>
-              <EventDateCard dateRange={event.dateRange} styles={styles} />
+              <EventDateCard dateRange={event.dateRange} />
             </Animated.View>
 
             <View style={styles.separator} />
@@ -614,13 +488,19 @@ function createStyles(theme: AppTheme) {
       width: '100%',
       height: '100%',
     },
+    headerRightContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
     nativeHeaderButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
       padding: 0,
+      backgroundColor: theme.palette.frostedSurface,
     },
     toolbarButtonPressed: {
       opacity: 0.72,
@@ -681,55 +561,6 @@ function createStyles(theme: AppTheme) {
       ...subheadline.regular,
       color: theme.labelColors.secondary,
       textAlign: 'center',
-    },
-    dateCard: {
-      minHeight: 136,
-      borderRadius: 28,
-      backgroundColor: theme.palette.cardMuted,
-      paddingHorizontal: 28,
-      paddingVertical: 24,
-      flexDirection: 'row',
-      alignItems: 'stretch',
-    },
-    dateColumn: {
-      flex: 1,
-      /**
-       * Intent: Align date text consistently to the left.
-       * Why: Match the reference layout for the right column.
-       */
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    dateLabel: {
-      ...title3.emphasized,
-      color: theme.labelColors.primary,
-      textAlign: 'left',
-    },
-    dateValue: {
-      ...title3.regular,
-      color: theme.labelColors.primary,
-      textAlign: 'left',
-    },
-    dateMeta: {
-      /**
-       * Intent: Reduce year emphasis in the date card.
-       * Why: Match the reference by making the year smaller and secondary.
-       */
-      ...subheadline.regular,
-      color: theme.labelColors.secondary,
-      textAlign: 'left',
-    },
-    dateColumnEnd: {
-      alignItems: 'flex-end',
-    },
-    dateTextEnd: {
-      textAlign: 'right',
-    },
-    dateDivider: {
-      width: StyleSheet.hairlineWidth,
-      marginHorizontal: 28,
-      backgroundColor: theme.palette.separator,
     },
     separator: {
       height: StyleSheet.hairlineWidth,

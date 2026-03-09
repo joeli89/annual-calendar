@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f6f6f6',
   },
   content: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 48,
   },
   dateHeader: {

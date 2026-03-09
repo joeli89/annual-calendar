@@ -4,10 +4,11 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Easing,
   FlatList,
   Image,
   Pressable,
@@ -36,6 +37,7 @@ import {
 
 const HERO_HEIGHT = 485;
 const INITIAL_DESCRIPTION_LINES = 2;
+const SHEET_ENTRY_SECTION_COUNT = 5;
 const MONTH_INDEX: Record<string, number> = {
   january: 0,
   february: 1,
@@ -164,11 +166,34 @@ export default function EventDetailScreen() {
   const [heroIndex, setHeroIndex] = useState(0);
   const heroListRef = useRef<FlatList<string> | null>(null);
   const sheetScrollY = useRef(new Animated.Value(0)).current;
+  const sheetSectionEnterValues = useRef(
+    Array.from(
+      { length: SHEET_ENTRY_SECTION_COUNT },
+      () => new Animated.Value(0)
+    )
+  ).current;
 
   const event = useMemo(
     () => events.find((item) => item.id === eventId),
     [eventId]
   );
+
+  useEffect(() => {
+    sheetSectionEnterValues.forEach((value) => value.setValue(0));
+    const animation = Animated.stagger(
+      80,
+      sheetSectionEnterValues.map((value) =>
+        Animated.timing(value, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      )
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [eventId]);
 
   if (!event) {
     return (
@@ -235,6 +260,23 @@ export default function EventDetailScreen() {
     outputRange: [1, 1.08],
     extrapolate: 'clamp',
   });
+  const heroParallaxOpacity = sheetScrollY.interpolate({
+    inputRange: [0, HERO_HEIGHT * 0.92],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const sheetSectionEntryStyles = sheetSectionEnterValues.map((value) => ({
+    opacity: value,
+    transform: [
+      {
+        translateY: value.interpolate({
+          inputRange: [0, 1],
+          outputRange: [32, 0],
+          extrapolate: 'clamp',
+        }),
+      },
+    ],
+  }));
 
   return (
     <>
@@ -318,97 +360,107 @@ export default function EventDetailScreen() {
                 },
               ]}
             />
-            <View style={styles.titleBlock}>
-              <Text style={styles.title}>{event.title}</Text>
-              <Text style={styles.location}>{event.location}</Text>
-            </View>
+            <Animated.View style={sheetSectionEntryStyles[0]}>
+              <View style={styles.titleBlock}>
+                <Text style={styles.title}>{event.title}</Text>
+                <Text style={styles.location}>{event.location}</Text>
+              </View>
+            </Animated.View>
 
-            <EventDateCard dateRange={event.dateRange} />
+            <Animated.View style={sheetSectionEntryStyles[1]}>
+              <EventDateCard dateRange={event.dateRange} />
+            </Animated.View>
 
             <View style={styles.separator} />
 
-            <View style={styles.actionsRow}>
-              {LINK_ACTIONS.map((action, index) => (
-                <View key={action.key} style={styles.actionCellWrapper}>
+            <Animated.View style={sheetSectionEntryStyles[2]}>
+              <View style={styles.actionsRow}>
+                {LINK_ACTIONS.map((action, index) => (
+                  <View key={action.key} style={styles.actionCellWrapper}>
+                    <Pressable
+                      accessibilityLabel={action.label}
+                      accessibilityRole="button"
+                      onPress={() => {}}
+                      style={({ pressed }) => [
+                        styles.actionCell,
+                        pressed && styles.actionCellPressed,
+                      ]}
+                    >
+                      <Ionicons
+                        color={labelColorsLight.primary}
+                        name={action.icon}
+                        size={18}
+                      />
+                      <Text style={styles.actionLabel}>{action.label}</Text>
+                    </Pressable>
+                    {index < LINK_ACTIONS.length - 1 ? (
+                      <View style={styles.actionSeparator} />
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+
+            <View style={styles.separator} />
+
+            <Animated.View style={sheetSectionEntryStyles[3]}>
+              <View style={styles.section}>
+                <Text
+                  numberOfLines={isDescriptionExpanded ? undefined : INITIAL_DESCRIPTION_LINES}
+                  style={styles.description}
+                >
+                  {description}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setIsDescriptionExpanded((value) => !value)}
+                  style={({ pressed }) => [
+                    styles.readMoreButton,
+                    pressed && styles.readMoreButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.readMoreText}>
+                    {isDescriptionExpanded ? 'read less' : 'read more'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+
+            <View style={styles.separator} />
+
+            <Animated.View style={sheetSectionEntryStyles[4]}>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Where it will be</Text>
+                <Text style={styles.sectionLocation}>{event.location}</Text>
+
+                <View style={styles.mapCard}>
+                  <WebView
+                    originWhitelist={['*']}
+                    scrollEnabled={false}
+                    source={{ uri: getGoogleMapsEmbedUrl(event.location) }}
+                    style={styles.mapWebView}
+                  />
+                  <View style={styles.mapPin}>
+                    <Ionicons color={grays.white} name="location" size={20} />
+                  </View>
                   <Pressable
-                    accessibilityLabel={action.label}
+                    accessibilityLabel="Expand map"
                     accessibilityRole="button"
                     onPress={() => {}}
                     style={({ pressed }) => [
-                      styles.actionCell,
-                      pressed && styles.actionCellPressed,
+                      styles.mapButton,
+                      pressed && styles.toolbarButtonPressed,
                     ]}
                   >
                     <Ionicons
                       color={labelColorsLight.primary}
-                      name={action.icon}
+                      name="expand-outline"
                       size={18}
                     />
-                    <Text style={styles.actionLabel}>{action.label}</Text>
                   </Pressable>
-                  {index < LINK_ACTIONS.length - 1 ? (
-                    <View style={styles.actionSeparator} />
-                  ) : null}
                 </View>
-              ))}
-            </View>
-
-            <View style={styles.separator} />
-
-            <View style={styles.section}>
-              <Text
-                numberOfLines={isDescriptionExpanded ? undefined : INITIAL_DESCRIPTION_LINES}
-                style={styles.description}
-              >
-                {description}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setIsDescriptionExpanded((value) => !value)}
-                style={({ pressed }) => [
-                  styles.readMoreButton,
-                  pressed && styles.readMoreButtonPressed,
-                ]}
-              >
-                <Text style={styles.readMoreText}>
-                  {isDescriptionExpanded ? 'read less' : 'read more'}
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.separator} />
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Where it will be</Text>
-              <Text style={styles.sectionLocation}>{event.location}</Text>
-
-              <View style={styles.mapCard}>
-                <WebView
-                  originWhitelist={['*']}
-                  scrollEnabled={false}
-                  source={{ uri: getGoogleMapsEmbedUrl(event.location) }}
-                  style={styles.mapWebView}
-                />
-                <View style={styles.mapPin}>
-                  <Ionicons color={grays.white} name="location" size={20} />
-                </View>
-                <Pressable
-                  accessibilityLabel="Expand map"
-                  accessibilityRole="button"
-                  onPress={() => {}}
-                  style={({ pressed }) => [
-                    styles.mapButton,
-                    pressed && styles.toolbarButtonPressed,
-                  ]}
-                >
-                  <Ionicons
-                    color={labelColorsLight.primary}
-                    name="expand-outline"
-                    size={18}
-                  />
-                </Pressable>
               </View>
-            </View>
+            </Animated.View>
           </Animated.View>
         </Animated.ScrollView>
 
@@ -417,6 +469,7 @@ export default function EventDetailScreen() {
             style={[
               styles.heroParallaxLayer,
               {
+                opacity: heroParallaxOpacity,
                 transform: [
                   { translateY: heroParallaxTranslateY },
                   { scale: heroParallaxScale },

@@ -4,7 +4,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -13,6 +13,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 import { events } from '../../data/events';
 /**
@@ -116,6 +117,10 @@ function getEventDateRange(dateRange: string) {
   };
 }
 
+function getGoogleMapsEmbedUrl(location: string) {
+  return `https://www.google.com/maps?q=${encodeURIComponent(location)}&z=13&output=embed`;
+}
+
 /**
  * Intent: Render the event's start and end dates as a standalone summary card.
  * Why: Match the provided detail-screen layout without changing shared event data.
@@ -138,7 +143,7 @@ function EventDateCard({ dateRange }: { dateRange: string }) {
       <View style={styles.dateDivider} />
 
       <View style={[styles.dateColumn, styles.dateColumnEnd]}>
-        <Text style={[styles.dateLabel, styles.dateTextEnd]}>ends</Text>
+        <Text style={[styles.dateLabel, styles.dateTextEnd]}>Ends</Text>
         <Text style={[styles.dateValue, styles.dateTextEnd]}>
           {parsedRange ? formatDayMonth(parsedRange.end) : 'Date unavailable'}
         </Text>
@@ -327,7 +332,12 @@ export default function EventDetailScreen() {
               <Text style={styles.sectionLocation}>{event.location}</Text>
 
               <View style={styles.mapCard}>
-                <Image source={{ uri: event.mapImageUrl }} style={styles.mapImage} />
+                <WebView
+                  originWhitelist={['*']}
+                  scrollEnabled={false}
+                  source={{ uri: getGoogleMapsEmbedUrl(event.location) }}
+                  style={styles.mapWebView}
+                />
                 <View style={styles.mapPin}>
                   <Ionicons color={grays.white} name="location" size={20} />
                 </View>
@@ -566,6 +576,10 @@ const styles = StyleSheet.create({
   mapImage: {
     width: '100%',
     height: '100%',
+  },
+  mapWebView: {
+    flex: 1,
+    backgroundColor: '#d9d9d9',
   },
   mapPin: {
     position: 'absolute',

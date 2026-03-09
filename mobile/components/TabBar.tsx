@@ -5,8 +5,15 @@
 import React from 'react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-// Trigger.Label exists at runtime; expo-router types omit it in this SDK version.
-const TriggerLabel = (NativeTabs.Trigger as unknown as { Label: (props: { children?: unknown }) => unknown }).Label;
+/**
+ * Intent: Recover the runtime `Trigger.Label` component with a JSX-safe type.
+ * Why: The current Expo Router typings omit this property, but it exists at runtime.
+ */
+const TriggerLabel = (
+  NativeTabs.Trigger as unknown as {
+    Label: React.ComponentType<{ children?: React.ReactNode }>;
+  }
+).Label;
 
 export function TabBar() {
   return (

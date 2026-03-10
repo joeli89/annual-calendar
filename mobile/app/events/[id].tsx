@@ -17,9 +17,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 
 import { EventDateCard } from '../../components/EventDateCard';
+import { EventMap } from '../../components/EventMap';
 import { events } from '../../data/events';
 import {
   body,
@@ -60,6 +60,7 @@ export default function EventDetailScreen() {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const heroListRef = useRef<FlatList<string> | null>(null);
   const sheetScrollY = useRef(new Animated.Value(0)).current;
@@ -132,6 +133,8 @@ export default function EventDetailScreen() {
       console.warn('Unable to open share sheet', error);
     }
   };
+  const mapLatitude = 51.5074;
+  const mapLongitude = -0.1278;
   const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
   const infiniteHeroImages = useMemo(
     () => [...heroImages, ...heroImages, ...heroImages],
@@ -200,16 +203,17 @@ export default function EventDetailScreen() {
           headerTitle: () => null,
           headerTransparent: true,
           headerShadowVisible: false,
-          headerBackButtonDisplayMode: 'minimal',
+          headerBackVisible: !isMapExpanded,
+          headerLeft: isMapExpanded ? () => null : undefined,
           headerTintColor: theme.labelColors.primary,
           scrollEdgeEffects: { top: 'automatic' },
-          headerRight: () => (
-            <View style={styles.headerRightContainer}>
+          headerRight: () =>
+            isMapExpanded ? (
               <Pressable
-                accessibilityLabel="Share event"
+                accessibilityLabel="Close map"
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={handleShareEvent}
+                onPress={() => setIsMapExpanded(false)}
                 style={({ pressed }) => [
                   styles.nativeHeaderButton,
                   pressed && styles.toolbarButtonPressed,
@@ -217,28 +221,46 @@ export default function EventDetailScreen() {
               >
                 <Ionicons
                   color={theme.labelColors.primary}
-                  name="share-outline"
+                  name="close"
                   size={24}
                 />
               </Pressable>
-              <Pressable
-                accessibilityLabel="Save event"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => {}}
-                style={({ pressed }) => [
-                  styles.nativeHeaderButton,
-                  pressed && styles.toolbarButtonPressed,
-                ]}
-              >
-                <Ionicons
-                  color={theme.labelColors.primary}
-                  name="heart-outline"
-                  size={24}
-                />
-              </Pressable>
-            </View>
-          ),
+            ) : (
+              <View style={styles.headerRightContainer}>
+                <Pressable
+                  accessibilityLabel="Share event"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={handleShareEvent}
+                  style={({ pressed }) => [
+                    styles.nativeHeaderButton,
+                    pressed && styles.toolbarButtonPressed,
+                  ]}
+                >
+                  <Ionicons
+                    color={theme.labelColors.primary}
+                    name="share-outline"
+                    size={24}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Save event"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => {}}
+                  style={({ pressed }) => [
+                    styles.nativeHeaderButton,
+                    pressed && styles.toolbarButtonPressed,
+                  ]}
+                >
+                  <Ionicons
+                    color={theme.labelColors.primary}
+                    name="heart-outline"
+                    size={24}
+                  />
+                </Pressable>
+              </View>
+            ),
         }}
       />
       <View style={styles.screen}>
@@ -345,24 +367,17 @@ export default function EventDetailScreen() {
                 <Text style={styles.sectionTitle}>Where it will be</Text>
                 <Text style={styles.sectionLocation}>{event.location}</Text>
 
+                {/* Hard-coded coordinates for now; later wire to event.latitude / event.longitude from Supabase or geocoded address */}
                 <View style={styles.mapCard}>
-                  <WebView
-                    originWhitelist={['*']}
-                    scrollEnabled={false}
-                    source={{ uri: getGoogleMapsEmbedUrl(event.location) }}
-                    style={styles.mapWebView}
+                  <EventMap
+                    latitude={mapLatitude}
+                    longitude={mapLongitude}
+                    zoom={15}
                   />
-                  <View style={styles.mapPin}>
-                    <Ionicons
-                      color="#ffffff"
-                      name="location"
-                      size={20}
-                    />
-                  </View>
                   <Pressable
                     accessibilityLabel="Expand map"
                     accessibilityRole="button"
-                    onPress={() => {}}
+                    onPress={() => setIsMapExpanded(true)}
                     style={({ pressed }) => [
                       styles.mapButton,
                       pressed && styles.toolbarButtonPressed,
@@ -445,6 +460,17 @@ export default function EventDetailScreen() {
             ))}
           </View>
         </View>
+
+        {isMapExpanded && (
+          <View style={styles.fullScreenMapOverlay}>
+            <EventMap
+              latitude={mapLatitude}
+              longitude={mapLongitude}
+              variant="fullscreen"
+              zoom={15}
+            />
+          </View>
+        )}
       </View>
     </>
   );
@@ -627,33 +653,12 @@ function createStyles(theme: AppTheme) {
       color: theme.labelColors.secondary,
     },
     mapCard: {
-      height: 348,
       borderRadius: 24,
       overflow: 'hidden',
-      borderWidth: 1,
       borderColor: theme.palette.cardBorder,
       position: 'relative',
       backgroundColor: theme.palette.placeholder,
-    },
-    mapImage: {
-      width: '100%',
-      height: '100%',
-    },
-    mapWebView: {
-      flex: 1,
-      backgroundColor: theme.palette.placeholder,
-    },
-    mapPin: {
-      position: 'absolute',
-      top: '38%',
-      left: '48%',
-      marginLeft: -12,
-      marginTop: -12,
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
+      height: 350,
     },
     mapButton: {
       position: 'absolute',
@@ -665,6 +670,15 @@ function createStyles(theme: AppTheme) {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.palette.frostedSurface,
+    },
+    fullScreenMapOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 3,
+      backgroundColor: theme.palette.screen,
     },
     notFoundScreen: {
       flex: 1,

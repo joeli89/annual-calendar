@@ -14,6 +14,17 @@ import {
 } from '../design-system';
 import { Event } from '../types/event';
 
+/** OSM tile URL for a lat/lon so the card thumbnail shows real map imagery (no embed branding). */
+function getStaticMapTileUrl(latitude: number, longitude: number, zoom = 14): string {
+  const n = 2 ** zoom;
+  const x = Math.floor(((longitude + 180) / 360) * n);
+  const latRad = (latitude * Math.PI) / 180;
+  const y = Math.floor(
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n
+  );
+  return `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+}
+
 type EventCardProps = {
   event: Event;
   onPress: (eventId: string) => void;
@@ -48,7 +59,16 @@ export function EventCard({ event, onPress }: EventCardProps) {
             <Text style={styles.locationText}>{event.location}</Text>
           </View>
           <View style={styles.mapWrapper}>
-            <Image source={{ uri: event.mapImageUrl }} style={styles.mapImage} />
+            {event.latitude != null && event.longitude != null ? (
+              <Image
+                source={{
+                  uri: getStaticMapTileUrl(event.latitude, event.longitude),
+                }}
+                style={styles.mapImage}
+              />
+            ) : (
+              <View style={styles.mapPlaceholder} />
+            )}
           </View>
         </View>
 
@@ -154,6 +174,11 @@ function createStyles(theme: AppTheme) {
     mapImage: {
       width: '100%',
       height: '100%',
+    },
+    mapPlaceholder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: theme.palette.placeholder,
     },
     descriptionText: {
       ...footnote.regular,

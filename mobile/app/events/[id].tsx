@@ -122,13 +122,6 @@ export default function EventDetailScreen() {
     return () => animation.stop();
   }, [eventId]);
 
-  // Must run on every render so hook count is stable (no hooks after early returns).
-  const infiniteHeroImages = useMemo(() => {
-    if (!event) return [];
-    const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
-    return [...heroImages, ...heroImages, ...heroImages];
-  }, [event?.id]);
-
   if (loading && !event) {
     return (
       <>
@@ -170,6 +163,8 @@ export default function EventDetailScreen() {
       </>
     );
   }
+  const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
+  const infiniteHeroImages = [...heroImages, ...heroImages, ...heroImages];
 
   const description = `${event.description}\n\n${event.description}`;
   const shareMessage = [
@@ -189,7 +184,6 @@ export default function EventDetailScreen() {
   };
   const mapLatitude = event.latitude ?? DEFAULT_MAP_LAT;
   const mapLongitude = event.longitude ?? DEFAULT_MAP_LNG;
-  const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
   const heroWidth = Dimensions.get('window').width;
   const sheetShadowOpacity = sheetScrollY.interpolate({
     inputRange: [0, 64],

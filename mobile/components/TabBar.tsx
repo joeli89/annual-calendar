@@ -1,31 +1,27 @@
 /**
  * Intent: Centralize native tab bar configuration for the app.
  * Why: Keep layout declarative and reuse tab structure in one place.
+ *
+ * Use the exported Label and Icon from the package so the layout context
+ * recognizes them (child.type === Label) and sets options.title / options.icon.
+ * Otherwise the native bar falls back to the route name (lowercase) and no icon.
  */
-import React from 'react';
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
-
-/**
- * Intent: Recover the runtime `Trigger.Label` component with a JSX-safe type.
- * Why: The current Expo Router typings omit this property, but it exists at runtime.
- */
-const TriggerLabel = (
-  NativeTabs.Trigger as unknown as {
-    Label: React.ComponentType<{ children?: React.ReactNode }>;
-  }
-).Label;
+import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 
 export function TabBar() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="events">
-        <TriggerLabel>Events</TriggerLabel>
+        <Icon sf={{ default: 'calendar', selected: 'calendar' }} />
+        <Label>Events</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="discover">
-        <TriggerLabel>Saved</TriggerLabel>
+      <NativeTabs.Trigger name="saved">
+        <Icon sf={{ default: 'bookmark', selected: 'bookmark.fill' }} />
+        <Label>Saved</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search">
-        <TriggerLabel>Search</TriggerLabel>
+        <Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} />
+        <Label>Search</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

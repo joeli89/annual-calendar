@@ -12,6 +12,8 @@ function getExtension(filename: string): string {
   return m ? m[1].toLowerCase() : 'jpg';
 }
 
+const MAX_IMAGES = 20;
+
 const emptyForm = {
   slug: '',
   title: '',
@@ -29,7 +31,7 @@ const emptyForm = {
   latitude: '',
   longitude: '',
   hero_image_url: '',
-  image_urls: ['', ''],
+  image_urls: [] as string[],
   website_url: '',
   instagram_url: '',
   x_url: '',
@@ -55,8 +57,8 @@ function toFormRow(row: EventRow) {
     country: row.country ?? '',
     latitude: row.latitude != null ? String(row.latitude) : '',
     longitude: row.longitude != null ? String(row.longitude) : '',
-    hero_image_url: row.hero_image_url,
-    image_urls: [...(row.image_urls ?? []), '', ''].slice(0, 2),
+    hero_image_url: row.hero_image_url ?? '',
+    image_urls: row.image_urls ?? [],
     website_url: row.website_url ?? '',
     instagram_url: row.instagram_url ?? '',
     x_url: row.x_url ?? '',
@@ -75,11 +77,17 @@ export function EventFormPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<'hero' | 'side0' | 'side1' | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const heroInputRef = useRef<HTMLInputElement>(null);
-  const side0InputRef = useRef<HTMLInputElement>(null);
-  const side1InputRef = useRef<HTMLInputElement>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /** Combined list: hero first, then image_urls (for display and count). Max MAX_IMAGES. */
+  const allImageUrls = [
+    ...(form.hero_image_url ? [form.hero_image_url] : []),
+    ...form.image_urls,
+  ].slice(0, MAX_IMAGES);
+  const canAddMore = allImageUrls.length < MAX_IMAGES;
 
   useEffect(() => {
     if (isNew) return;
@@ -103,12 +111,10 @@ export function EventFormPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleImageUpload(
-    file: File,
-    field: 'hero' | 'side0' | 'side1'
-  ) {
+  async function handleImageUpload(file: File) {
+    if (allImageUrls.length >= MAX_IMAGES) return;
     setUploadError(null);
-    setUploading(field);
+    setUploading(true);
     const ext = getExtension(file.name);
     const path = `events/${crypto.randomUUID()}.${ext}`;
     try {
@@ -119,20 +125,44 @@ export function EventFormPage() {
       const {
         data: { publicUrl },
       } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      if (field === 'hero') {
+      if (!form.hero_image_url) {
         update('hero_image_url', publicUrl);
       } else {
-        const idx = field === 'side0' ? 0 : 1;
-        update('image_urls', [
-          idx === 0 ? publicUrl : form.image_urls[0],
-          idx === 1 ? publicUrl : form.image_urls[1],
-        ]);
+        update('image_urls', [...form.image_urls, publicUrl]);
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
-      setUploading(null);
+      setUploading(false);
     }
+  }
+
+  function removeImage(index: number) {
+    if (index === 0) {
+      if (form.image_urls.length > 0) {
+        update('hero_image_url', form.image_urls[0]);
+        update('image_urls', form.image_urls.slice(1));
+      } else {
+        update('hero_image_url', '');
+      }
+    } else {
+      const newSide = form.image_urls.filter((_, i) => i !== index - 1);
+      update('image_urls', newSide);
+    }
+  }
+
+  /** Reorder images: apply new order to form (hero = first, rest = image_urls). */
+  function reorderImages(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    const reordered = [...allImageUrls];
+    const [removed] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, removed);
+    setForm((prev) => ({
+      ...prev,
+      hero_image_url: reordered[0] ?? '',
+      image_urls: reordered.slice(1),
+    }));
+    setDraggedIndex(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -332,131 +362,77 @@ export function EventFormPage() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Images (URLs or upload)</h2>
+          <h2 className={styles.sectionTitle}>Images</h2>
           {uploadError && (
             <p className={styles.uploadError} role="alert">
               {uploadError}
             </p>
           )}
-          <label className={styles.label}>
-            Hero image URL
-            <div className={styles.imageRow}>
-              <input
-                type="url"
-                value={form.hero_image_url}
-                onChange={(e) => update('hero_image_url', e.target.value)}
-                required
-                placeholder="https://…"
-                className={styles.input}
-              />
-              <input
-                ref={heroInputRef}
-                type="file"
-                accept="image/*"
-                className={styles.fileInput}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleImageUpload(f, 'hero');
-                  e.target.value = '';
-                }}
-              />
-              <button
-                type="button"
-                className={styles.uploadButton}
-                disabled={uploading !== null}
-                onClick={() => heroInputRef.current?.click()}
-              >
-                {uploading === 'hero' ? 'Uploading…' : 'Upload'}
-              </button>
+          <div className={styles.uploadArea}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className={styles.fileInput}
+              disabled={!canAddMore || uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImageUpload(f);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              className={styles.uploadButton}
+              disabled={!canAddMore || uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? 'Uploading…' : `Upload image${canAddMore ? ` (${allImageUrls.length}/${MAX_IMAGES})` : ''}`}
+            </button>
+          </div>
+          {allImageUrls.length > 0 && (
+            <div className={styles.imageGrid} role="list">
+              {allImageUrls.map((url, index) => (
+                <div
+                  key={url}
+                  className={`${styles.imageGridItem} ${draggedIndex === index ? styles.imageGridItemDragging : ''}`}
+                  role="listitem"
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggedIndex(index);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', String(index));
+                  }}
+                  onDragEnd={() => setDraggedIndex(null)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedIndex === null) return;
+                    reorderImages(draggedIndex, index);
+                  }}
+                >
+                  <img
+                    src={url}
+                    alt={index === 0 ? 'Hero' : `Image ${index + 1}`}
+                    className={styles.imagePreview}
+                    draggable={false}
+                  />
+                  <button
+                    type="button"
+                    className={styles.removeImageButton}
+                    onClick={() => removeImage(index)}
+                    title="Remove image"
+                    aria-label={`Remove image ${index + 1}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
-            {form.hero_image_url && (
-              <img
-                src={form.hero_image_url}
-                alt="Hero preview"
-                className={styles.imagePreview}
-              />
-            )}
-          </label>
-          <label className={styles.label}>
-            Side image 1
-            <div className={styles.imageRow}>
-              <input
-                type="url"
-                value={form.image_urls[0]}
-                onChange={(e) =>
-                  update('image_urls', [e.target.value, form.image_urls[1]])
-                }
-                placeholder="https://…"
-                className={styles.input}
-              />
-              <input
-                ref={side0InputRef}
-                type="file"
-                accept="image/*"
-                className={styles.fileInput}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleImageUpload(f, 'side0');
-                  e.target.value = '';
-                }}
-              />
-              <button
-                type="button"
-                className={styles.uploadButton}
-                disabled={uploading !== null}
-                onClick={() => side0InputRef.current?.click()}
-              >
-                {uploading === 'side0' ? 'Uploading…' : 'Upload'}
-              </button>
-            </div>
-            {form.image_urls[0] && (
-              <img
-                src={form.image_urls[0]}
-                alt="Side 1 preview"
-                className={styles.imagePreview}
-              />
-            )}
-          </label>
-          <label className={styles.label}>
-            Side image 2
-            <div className={styles.imageRow}>
-              <input
-                type="url"
-                value={form.image_urls[1]}
-                onChange={(e) =>
-                  update('image_urls', [form.image_urls[0], e.target.value])
-                }
-                placeholder="https://…"
-                className={styles.input}
-              />
-              <input
-                ref={side1InputRef}
-                type="file"
-                accept="image/*"
-                className={styles.fileInput}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleImageUpload(f, 'side1');
-                  e.target.value = '';
-                }}
-              />
-              <button
-                type="button"
-                className={styles.uploadButton}
-                disabled={uploading !== null}
-                onClick={() => side1InputRef.current?.click()}
-              >
-                {uploading === 'side1' ? 'Uploading…' : 'Upload'}
-              </button>
-            </div>
-            {form.image_urls[1] && (
-              <img
-                src={form.image_urls[1]}
-                alt="Side 2 preview"
-                className={styles.imagePreview}
-              />
-            )}
-          </label>
+          )}
         </section>
 
         <section className={styles.section}>

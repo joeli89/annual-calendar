@@ -3,13 +3,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { title2, useAppTheme } from '../../design-system';
 
-export default function DiscoverScreen() {
+export default function SavedScreen() {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={styles.container}>
-      <Text style={[title2.regular, styles.text]}>Discover</Text>
+      <Text style={[title2.regular, styles.text]}>Saved</Text>
     </View>
   );
 }

@@ -15,4 +15,7 @@ export type Event = {
   month: number;
   /** Year for section grouping. */
   year: number;
+  /** Optional map coordinates from Supabase; used on detail screen when present. */
+  latitude?: number;
+  longitude?: number;
 };

@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -18,8 +19,17 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: theme.palette.screen },
         }}
       >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="events/[id]" />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ title: '', headerBackTitleVisible: false }}
+        />
+        <Stack.Screen
+          name="events/[id]"
+          options={{
+            headerBackTitleVisible: false,
+            headerBackButtonDisplayMode: 'minimal',
+          }}
+        />
       </Stack>
     </>
   );

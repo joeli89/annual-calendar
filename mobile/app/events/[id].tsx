@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
@@ -20,7 +21,11 @@ import {
 
 import { EventDateCard } from '../../components/EventDateCard';
 import { EventMap } from '../../components/EventMap';
-import { events } from '../../data/events';
+import {
+  fetchEventById,
+  isEventFavorited,
+  toggleFavorite,
+} from '../../lib/eventsApi';
 import {
   body,
   subheadline,
@@ -54,11 +59,17 @@ function getGoogleMapsEmbedUrl(location: string) {
   return `https://www.google.com/maps?q=${encodeURIComponent(location)}&z=13&output=embed`;
 }
 
+const DEFAULT_MAP_LAT = 51.5074;
+const DEFAULT_MAP_LNG = -0.1278;
+
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const eventId = normalizeParam(id);
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [event, setEvent] = useState<Awaited<ReturnType<typeof fetchEventById>>>(null);
+  const [loading, setLoading] = useState(true);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
@@ -71,10 +82,28 @@ export default function EventDetailScreen() {
     )
   ).current;
 
-  const event = useMemo(
-    () => events.find((item) => item.id === eventId),
-    [eventId]
-  );
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const data = await fetchEventById(eventId ?? '');
+      if (!cancelled) setEvent(data);
+      if (data) {
+        const favorited = await isEventFavorited(data.id);
+        if (!cancelled) setIsFavorited(favorited);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+
+  const handleToggleFavorite = async () => {
+    if (!event) return;
+    const result = await toggleFavorite(event.id);
+    setIsFavorited(result.favorited);
+  };
 
   useEffect(() => {
     sheetSectionEnterValues.forEach((value) => value.setValue(0));
@@ -92,6 +121,31 @@ export default function EventDetailScreen() {
     animation.start();
     return () => animation.stop();
   }, [eventId]);
+
+  // Must run on every render so hook count is stable (no hooks after early returns).
+  const infiniteHeroImages = useMemo(() => {
+    if (!event) return [];
+    const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
+    return [...heroImages, ...heroImages, ...heroImages];
+  }, [event?.id]);
+
+  if (loading && !event) {
+    return (
+      <>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            title: 'Event',
+            headerTransparent: true,
+            headerTintColor: theme.labelColors.primary,
+          }}
+        />
+        <View style={[styles.notFoundScreen, { justifyContent: 'center' }]}>
+          <ActivityIndicator size="large" color={theme.labelColors.primary} />
+        </View>
+      </>
+    );
+  }
 
   if (!event) {
     return (
@@ -133,13 +187,9 @@ export default function EventDetailScreen() {
       console.warn('Unable to open share sheet', error);
     }
   };
-  const mapLatitude = 51.5074;
-  const mapLongitude = -0.1278;
+  const mapLatitude = event.latitude ?? DEFAULT_MAP_LAT;
+  const mapLongitude = event.longitude ?? DEFAULT_MAP_LNG;
   const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
-  const infiniteHeroImages = useMemo(
-    () => [...heroImages, ...heroImages, ...heroImages],
-    [event.id]
-  );
   const heroWidth = Dimensions.get('window').width;
   const sheetShadowOpacity = sheetScrollY.interpolate({
     inputRange: [0, 64],
@@ -205,6 +255,8 @@ export default function EventDetailScreen() {
           headerShadowVisible: false,
           headerBackVisible: !isMapExpanded,
           headerLeft: isMapExpanded ? () => null : undefined,
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitle: '',
           headerTintColor: theme.labelColors.primary,
           scrollEdgeEffects: { top: 'automatic' },
           headerRight: () =>
@@ -244,10 +296,10 @@ export default function EventDetailScreen() {
                   />
                 </Pressable>
                 <Pressable
-                  accessibilityLabel="Save event"
+                  accessibilityLabel={isFavorited ? 'Unsave event' : 'Save event'}
                   accessibilityRole="button"
                   hitSlop={8}
-                  onPress={() => {}}
+                  onPress={handleToggleFavorite}
                   style={({ pressed }) => [
                     styles.nativeHeaderButton,
                     pressed && styles.toolbarButtonPressed,
@@ -255,7 +307,7 @@ export default function EventDetailScreen() {
                 >
                   <Ionicons
                     color={theme.labelColors.primary}
-                    name="heart-outline"
+                    name={isFavorited ? 'heart' : 'heart-outline'}
                     size={24}
                   />
                 </Pressable>
@@ -367,7 +419,6 @@ export default function EventDetailScreen() {
                 <Text style={styles.sectionTitle}>Where it will be</Text>
                 <Text style={styles.sectionLocation}>{event.location}</Text>
 
-                {/* Hard-coded coordinates for now; later wire to event.latitude / event.longitude from Supabase or geocoded address */}
                 <View style={styles.mapCard}>
                   <EventMap
                     latitude={mapLatitude}

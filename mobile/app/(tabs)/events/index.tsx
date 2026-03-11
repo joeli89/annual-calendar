@@ -1,13 +1,16 @@
 /**
  * Intent: Render the Events list screen with a native iOS 26 liquid glass header
  * aligned to Figma (Annual-Calendar): no title, trailing pill button with menu icon only.
+ * Events are loaded from Supabase when configured; otherwise mock data is used.
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Platform,
   Pressable,
+  RefreshControl,
   SectionList,
   StyleSheet,
   Text,
@@ -18,13 +21,13 @@ import {
 import { Stack, useRouter } from 'expo-router';
 
 import { EventCard } from '../../../components/EventCard';
-import { events } from '../../../data/events';
 import {
   largeTitle,
   useAppTheme,
   type AppTheme,
 } from '../../../design-system';
 import { Event } from '../../../types/event';
+import { fetchEvents } from '../../../lib/eventsApi';
 
 const CARD_FADE_IN_OFFSET = 16;
 const CARD_FADE_IN_DURATION = 280;
@@ -36,7 +39,7 @@ const MONTH_NAMES = [
 
 type Section = { title: { month: string; year: string }; data: Event[] };
 
-function buildSections(): Section[] {
+function buildSections(events: Event[]): Section[] {
   const byKey = new Map<string, Event[]>();
   for (const event of events) {
     const key = `${event.year}-${event.month}`;
@@ -53,12 +56,46 @@ function buildSections(): Section[] {
   });
 }
 
-const SECTIONS = buildSections();
-
 export default function EventsScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEvents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchEvents();
+      setEvents(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load events');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const data = await fetchEvents();
+      setEvents(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load events');
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  const sections = useMemo(() => buildSections(events), [events]);
   const animationValuesRef = useRef(
     new Map<
       string,
@@ -120,6 +157,28 @@ export default function EventsScreen() {
     }
   ).current;
 
+  if (loading && events.length === 0) {
+    return (
+      <>
+        <Stack.Screen options={{ headerTitle: () => null, headerLargeTitle: false }} />
+        <View style={[styles.screen, styles.centered]}>
+          <ActivityIndicator size="large" color={theme.labelColors.primary} />
+        </View>
+      </>
+    );
+  }
+
+  if (error && events.length === 0) {
+    return (
+      <>
+        <Stack.Screen options={{ headerTitle: () => null, headerLargeTitle: false }} />
+        <View style={[styles.screen, styles.centered]}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </>
+    );
+  }
+
   return (
     <>
       <Stack.Screen
@@ -127,6 +186,16 @@ export default function EventsScreen() {
           headerTitle: () => null,
           headerLargeTitle: false,
           headerTintColor: theme.labelColors.primary,
+          headerLeft: () => (
+            <View style={styles.headerSpinnerContainer}>
+              {refreshing ? (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.labelColors.primary}
+                />
+              ) : null}
+            </View>
+          ),
           headerRight: ({ tintColor }) => (
             <Pressable
               onPress={() => {}}
@@ -147,10 +216,18 @@ export default function EventsScreen() {
       />
       <View style={styles.screen}>
         <SectionList
-          sections={SECTIONS}
+          sections={sections}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.labelColors.primary}
+              colors={[theme.labelColors.primary]}
+            />
+          }
           renderSectionHeader={({ section }) => {
-            const isFirstSection = section === SECTIONS[0];
+            const isFirstSection = section === sections[0];
             return (
               <View
                 style={[
@@ -204,6 +281,14 @@ function createStyles(theme: AppTheme) {
       flex: 1,
       backgroundColor: theme.palette.screen,
     },
+    centered: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorText: {
+      color: theme.labelColors.secondary,
+      textAlign: 'center',
+    },
     content: {
       paddingHorizontal: 16,
       paddingBottom: 48,
@@ -228,6 +313,12 @@ function createStyles(theme: AppTheme) {
     },
     cardWrapper: {
       width: '100%',
+    },
+    headerSpinnerContainer: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerButton: {
       width: 44,

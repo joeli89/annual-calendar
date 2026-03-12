@@ -10,7 +10,7 @@ import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 
 export function TabBar() {
   return (
-    <NativeTabs>
+    <NativeTabs tintColor="black">
       <NativeTabs.Trigger name="events">
         <Icon sf={{ default: 'calendar', selected: 'calendar' }} />
         <Label>Events</Label>

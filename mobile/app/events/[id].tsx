@@ -37,7 +37,7 @@ import {
 } from '../../design-system';
 
 const HERO_HEIGHT = 485;
-const INITIAL_DESCRIPTION_LINES = 2;
+const INITIAL_DESCRIPTION_LINES = 4;
 const SHEET_ENTRY_SECTION_COUNT = 5;
 type LinkAction = {
   key: 'website' | 'instagram' | 'x';
@@ -786,6 +786,7 @@ function createStyles(theme: AppTheme) {
       borderWidth: 0.33,
       borderColor: theme.palette.cardBorder,
       overflow: 'hidden',
+      marginBottom: 8,
     },
   });
 }

@@ -4,6 +4,7 @@
  * Events are loaded from Supabase when configured; otherwise mock data is used.
  */
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -64,6 +65,20 @@ export default function EventsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const filterSheetRef = useRef<BottomSheetModal | null>(null);
+  const filterSnapPoints = useMemo(() => ['45%'], []);
+
+  const handleOpenFilterSheet = () => {
+    // Debug: verify filter button taps and sheet ref wiring.
+    console.log('[EventsScreen] Filter button pressed');
+    if (!filterSheetRef.current) {
+      console.log('[EventsScreen] filterSheetRef is null');
+      return;
+    }
+    console.log('[EventsScreen] Presenting filter bottom sheet');
+    filterSheetRef.current.present();
+  };
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -180,7 +195,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <>
+    <BottomSheetModalProvider>
       <Stack.Screen
         options={{
           headerTitle: () => null,
@@ -204,7 +219,7 @@ export default function EventsScreen() {
           ),
           headerRight: ({ tintColor }) => (
             <Pressable
-              onPress={() => {}}
+              onPress={handleOpenFilterSheet}
               style={({ pressed }) => [
                 styles.headerButton,
                 pressed && styles.headerButtonPressed,
@@ -277,7 +292,20 @@ export default function EventsScreen() {
           viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
         />
       </View>
-    </>
+      <BottomSheetModal
+        ref={filterSheetRef}
+        snapPoints={filterSnapPoints}
+        backgroundStyle={{ backgroundColor: theme.palette.card }}
+        handleIndicatorStyle={{ backgroundColor: theme.labelColors.quaternary }}
+      >
+        <View style={styles.filterSheetContent}>
+          <Text style={styles.filterSheetTitle}>Filters</Text>
+          <Text style={styles.filterSheetSubtitle}>
+            Filter options will appear here.
+          </Text>
+        </View>
+      </BottomSheetModal>
+    </BottomSheetModalProvider>
   );
 }
 
@@ -296,6 +324,7 @@ function createStyles(theme: AppTheme) {
       textAlign: 'center',
     },
     content: {
+      paddingTop: 32,
       paddingHorizontal: 16,
       paddingBottom: 48,
     },
@@ -345,6 +374,19 @@ function createStyles(theme: AppTheme) {
     },
     headerButtonPressed: {
       opacity: 0.7,
+    },
+    filterSheetContent: {
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 32,
+      gap: 8,
+    },
+    filterSheetTitle: {
+      ...largeTitle.regular,
+      color: theme.labelColors.primary,
+    },
+    filterSheetSubtitle: {
+      color: theme.labelColors.secondary,
     },
   });
 }

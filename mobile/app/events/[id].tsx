@@ -354,30 +354,46 @@ export default function EventDetailScreen() {
             <View style={styles.separator} />
 
             <Animated.View style={sheetSectionEntryStyles[2]}>
-              <View style={styles.actionsRow}>
-                {LINK_ACTIONS.map((action, index) => (
-                  <View key={action.key} style={styles.actionCellWrapper}>
-                    <Pressable
-                      accessibilityLabel={action.label}
-                      accessibilityRole="button"
-                      onPress={() => {}}
-                      style={({ pressed }) => [
-                        styles.actionCell,
-                        pressed && styles.actionCellPressed,
-                      ]}
-                    >
-                      <Ionicons
-                        color={theme.labelColors.primary}
-                        name={action.icon}
-                        size={18}
-                      />
-                      <Text style={styles.actionLabel}>{action.label}</Text>
-                    </Pressable>
-                    {index < LINK_ACTIONS.length - 1 ? (
-                      <View style={styles.actionSeparator} />
-                    ) : null}
-                  </View>
-                ))}
+              <View style={styles.section}>
+                <View style={styles.primaryButtonContainer}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {}}
+                    style={({ pressed }) => [
+                      styles.primaryButton,
+                      pressed && styles.primaryButtonPressed,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonLabel}>Get tickets</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.separator} />
+
+                <View style={styles.actionsRow}>
+                  {LINK_ACTIONS.map((action, index) => (
+                    <View key={action.key} style={styles.actionCellWrapper}>
+                      <Pressable
+                        accessibilityLabel={action.label}
+                        accessibilityRole="button"
+                        onPress={() => {}}
+                        style={({ pressed }) => [
+                          styles.actionCell,
+                          pressed && styles.actionCellPressed,
+                        ]}
+                      >
+                        <Ionicons
+                          color={theme.labelColors.primary}
+                          name={action.icon}
+                          size={18}
+                        />
+                        <Text style={styles.actionLabel}>{action.label}</Text>
+                      </Pressable>
+                      {index < LINK_ACTIONS.length - 1 ? (
+                        <View style={styles.actionSeparator} />
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
               </View>
             </Animated.View>
 
@@ -673,6 +689,25 @@ function createStyles(theme: AppTheme) {
       ...body.regular,
       color: theme.labelColors.primary,
     },
+    primaryButton: {
+      height: 48,
+      borderRadius: 999,
+      backgroundColor: theme.palette.primaryButtonBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.palette.shadowColor,
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 5,
+    },
+    primaryButtonPressed: {
+      opacity: 0.72,
+    },
+    primaryButtonLabel: {
+      ...subheadline.emphasized,
+      color: theme.palette.primaryButtonText,
+    },
     readMoreButton: {
       minHeight: 40,
       borderRadius: 8,
@@ -742,6 +777,15 @@ function createStyles(theme: AppTheme) {
       ...subheadline.regular,
       color: theme.labelColors.secondary,
       textAlign: 'center',
+    },
+    primaryButtonContainer: {
+      backgroundColor: theme.palette.cardMuted,
+      borderRadius: 40,
+      padding: 8,
+      boxShadow: theme.palette.shadowColor,
+      borderWidth: 0.33,
+      borderColor: theme.palette.cardBorder,
+      overflow: 'hidden',
     },
   });
 }

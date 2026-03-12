@@ -186,15 +186,21 @@ export default function EventsScreen() {
           headerTitle: () => null,
           headerLargeTitle: false,
           headerTintColor: theme.labelColors.primary,
-          headerLeft: () => (
-            <View style={styles.headerSpinnerContainer}>
-              {refreshing ? (
-                <ActivityIndicator
-                  size="small"
-                  color={theme.labelColors.primary}
-                />
-              ) : null}
-            </View>
+          headerLeft: ({ tintColor }) => (
+            <Pressable
+              onPress={() => router.push('/profile')}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && styles.headerButtonPressed,
+              ]}
+              hitSlop={8}
+            >
+              <Ionicons
+                name="person-circle-outline"
+                size={28}
+                color={tintColor ?? theme.labelColors.primary}
+              />
+            </Pressable>
           ),
           headerRight: ({ tintColor }) => (
             <Pressable

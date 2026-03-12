@@ -47,8 +47,8 @@ type LinkAction = {
 
 const LINK_ACTIONS: LinkAction[] = [
   { key: 'website', label: 'Website', icon: 'globe-outline' },
-  { key: 'instagram', label: 'Instagram', icon: 'link-outline' },
-  { key: 'x', label: 'X', icon: 'attach-outline' },
+  { key: 'instagram', label: 'Instagram', icon: 'logo-instagram' },
+  { key: 'x', label: 'X', icon: 'logo-twitter' },
 ];
 
 function normalizeParam(value: string | string[] | undefined) {

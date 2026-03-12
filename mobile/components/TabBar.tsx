@@ -16,7 +16,7 @@ export function TabBar() {
         <Label>Events</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="saved">
-        <Icon sf={{ default: 'bookmark', selected: 'bookmark.fill' }} />
+        <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
         <Label>Saved</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search">

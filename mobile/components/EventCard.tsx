@@ -30,6 +30,27 @@ type EventCardProps = {
   onPress: (eventId: string) => void;
 };
 
+/**
+ * Intent: Reuse the primary CTA button styling within the event card.
+ * Why: Keep the "View Event" interaction consistent and easier to tweak.
+ */
+function EventCardButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <Pressable style={styles.button} onPress={onPress}>
+      <Text style={styles.buttonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function EventCard({ event, onPress }: EventCardProps) {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -76,9 +97,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
           {event.description}
         </Text>
 
-        <Pressable style={styles.button} onPress={() => onPress(event.id)}>
-          <Text style={styles.buttonText}>View Event</Text>
-        </Pressable>
+        <EventCardButton label="View Event" onPress={() => onPress(event.id)} />
       </View>
     </View>
   );

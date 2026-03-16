@@ -4,7 +4,7 @@
  * Events are loaded from Supabase when configured; otherwise mock data is used.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -67,7 +67,7 @@ export default function EventsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const filterSheetRef = useRef<BottomSheetModal | null>(null);
-  const filterSnapPoints = useMemo(() => ['45%'], []);
+  const filterSnapPoints = useMemo(() => ['65%'], []);
 
   const handleOpenFilterSheet = () => {
     // Debug: verify filter button taps and sheet ref wiring.
@@ -195,7 +195,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <BottomSheetModalProvider>
+    <>
       <Stack.Screen
         options={{
           headerTitle: () => null,
@@ -303,9 +303,15 @@ export default function EventsScreen() {
           <Text style={styles.filterSheetSubtitle}>
             Filter options will appear here.
           </Text>
+          <View style={styles.filterSheetDummyBlock}>
+            <Text style={styles.filterSheetDummyText}>
+              This is placeholder filter content so the bottom sheet is clearly
+              visible when opened.
+            </Text>
+          </View>
         </View>
       </BottomSheetModal>
-    </BottomSheetModalProvider>
+    </>
   );
 }
 
@@ -387,6 +393,19 @@ function createStyles(theme: AppTheme) {
     },
     filterSheetSubtitle: {
       color: theme.labelColors.secondary,
+    },
+    filterSheetDummyBlock: {
+      marginTop: 16,
+      borderRadius: 16,
+      backgroundColor: theme.palette.cardMuted,
+      padding: 16,
+      minHeight: 200,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    filterSheetDummyText: {
+      color: theme.labelColors.secondary,
+      textAlign: 'center',
     },
   });
 }

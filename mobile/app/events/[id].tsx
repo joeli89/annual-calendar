@@ -3,7 +3,7 @@
  * Why: Match the Figma event detail layout without changing shared data contracts.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,6 +26,7 @@ import {
   isEventFavorited,
   toggleFavorite,
 } from '../../lib/eventsApi';
+import { useAuth } from '../../lib/useAuth';
 import {
   body,
   subheadline,
@@ -67,6 +68,8 @@ export default function EventDetailScreen() {
   const eventId = normalizeParam(id);
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user } = useAuth();
+  const router = useRouter();
   const [event, setEvent] = useState<Awaited<ReturnType<typeof fetchEventById>>>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -81,6 +84,9 @@ export default function EventDetailScreen() {
       () => new Animated.Value(0)
     )
   ).current;
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const favoriteScale = useRef(new Animated.Value(1)).current;
+  const toastAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     let cancelled = false;
@@ -99,10 +105,64 @@ export default function EventDetailScreen() {
     };
   }, [eventId]);
 
+  /**
+   * Intent: Animate the heart icon and show a lightweight toast when the favorite state changes.
+   * Why: Give users instant, delightful feedback that their tap worked.
+   */
+  const playFavoriteAnimation = () => {
+    favoriteScale.setValue(0.8);
+    Animated.spring(favoriteScale, {
+      toValue: 1,
+      friction: 5,
+      tension: 160,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    toastAnim.stopAnimation();
+    toastAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.delay(1500),
+      Animated.timing(toastAnim, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setToastMessage(null);
+      }
+    });
+  };
+
   const handleToggleFavorite = async () => {
     if (!event) return;
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+    const wasFavorited = isFavorited;
     const result = await toggleFavorite(event.id);
+    if (result.error) {
+      showToast('Something went wrong. Please try again.');
+      return;
+    }
     setIsFavorited(result.favorited);
+    playFavoriteAnimation();
+    if (!wasFavorited && result.favorited) {
+      showToast('Saved to your events');
+    } else if (wasFavorited && !result.favorited) {
+      showToast('Removed from saved events');
+    }
   };
 
   useEffect(() => {
@@ -198,6 +258,11 @@ export default function EventDetailScreen() {
   const sheetElevation = sheetScrollY.interpolate({
     inputRange: [0, 64],
     outputRange: [2, 10],
+    extrapolate: 'clamp',
+  });
+  const toastTranslateY = toastAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [24, 0],
     extrapolate: 'clamp',
   });
   const grabHandleOpacity = sheetScrollY.interpolate({
@@ -299,11 +364,17 @@ export default function EventDetailScreen() {
                     pressed && styles.toolbarButtonPressed,
                   ]}
                 >
-                  <Ionicons
-                    color={theme.labelColors.primary}
-                    name={isFavorited ? 'heart' : 'heart-outline'}
-                    size={24}
-                  />
+                  <Animated.View
+                    style={{
+                      transform: [{ scale: favoriteScale }],
+                    }}
+                  >
+                    <Ionicons
+                      color={theme.labelColors.primary}
+                      name={isFavorited ? 'heart' : 'heart-outline'}
+                      size={24}
+                    />
+                  </Animated.View>
                 </Pressable>
               </View>
             ),
@@ -531,6 +602,21 @@ export default function EventDetailScreen() {
               zoom={15}
             />
           </View>
+        )}
+
+        {toastMessage && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.toastContainer,
+              {
+                opacity: toastAnim,
+                transform: [{ translateY: toastTranslateY }],
+              },
+            ]}
+          >
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </Animated.View>
         )}
       </View>
     </>
@@ -787,6 +873,28 @@ function createStyles(theme: AppTheme) {
       borderColor: theme.palette.cardBorder,
       overflow: 'hidden',
       marginBottom: 8,
+    },
+    toastContainer: {
+      position: 'absolute',
+      left: 24,
+      right: 24,
+      bottom: 32,
+      borderRadius: 999,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: theme.palette.frostedSurface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.palette.shadowColor,
+      shadowOpacity: 0.18,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 4,
+    },
+    toastText: {
+      ...subheadline.regular,
+      color: theme.labelColors.primary,
+      textAlign: 'center',
     },
   });
 }

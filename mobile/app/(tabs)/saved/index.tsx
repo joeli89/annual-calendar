@@ -13,19 +13,22 @@ import {
   Text,
   View,
 } from 'react-native';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 
 import { SavedEventCard } from '../../../components/SavedEventCard';
 import { useAppTheme, type AppTheme, body } from '../../../design-system';
 import type { Event } from '../../../types/event';
 import { fetchEvents, getFavoriteEventIds } from '../../../lib/eventsApi';
+import { useAuth } from '../../../lib/useAuth';
 import { isSupabaseConfigured } from '../../../lib/supabase';
 
 export default function SavedScreen() {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,18 +43,9 @@ export default function SavedScreen() {
       const allEvents = await fetchEvents();
       let savedEvents: Event[] = [];
 
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && user) {
         const favoriteIds = await getFavoriteEventIds();
         savedEvents = allEvents.filter((e) => favoriteIds.has(e.id));
-
-        // When there are no favorites yet (e.g. auth not wired),
-        // fall back to a small sample so the grid UI can be previewed.
-        if (savedEvents.length === 0) {
-          savedEvents = allEvents.slice(0, 6);
-        }
-      } else {
-        // Supabase not configured – always show a small sample.
-        savedEvents = allEvents.slice(0, 6);
       }
 
       setEvents(savedEvents);
@@ -60,7 +54,7 @@ export default function SavedScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -69,14 +63,9 @@ export default function SavedScreen() {
       const allEvents = await fetchEvents();
       let savedEvents: Event[] = [];
 
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && user) {
         const favoriteIds = await getFavoriteEventIds();
         savedEvents = allEvents.filter((e) => favoriteIds.has(e.id));
-        if (savedEvents.length === 0) {
-          savedEvents = allEvents.slice(0, 6);
-        }
-      } else {
-        savedEvents = allEvents.slice(0, 6);
       }
 
       setEvents(savedEvents);
@@ -85,11 +74,19 @@ export default function SavedScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadSavedEvents();
   }, [loadSavedEvents]);
+
+  // Intent: Re-fetch saved events whenever the Saved tab gains focus so
+  // that newly favorited events appear without requiring a manual refresh.
+  useFocusEffect(
+    useCallback(() => {
+      loadSavedEvents();
+    }, [loadSavedEvents]),
+  );
 
   const handlePressCard = (eventId: string) => {
     router.push(`/events/${eventId}`);
@@ -98,28 +95,69 @@ export default function SavedScreen() {
   const today = useMemo(() => new Date(), []);
 
   const visibleEvents = useMemo(() => {
-    if (segmentIndex === 0) return events;
-
     const todayMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
     const getEventMonthStart = (event: Event) =>
       new Date(event.year, event.month - 1, 1);
 
-    if (segmentIndex === 1) {
-      // Upcoming
+    if (segmentIndex === 0) {
+      // Coming Up: event start >= start of current month
       return events.filter((event) => getEventMonthStart(event) >= todayMonthStart);
     }
-
-    // Past
+    // Previous: event start before current month
     return events.filter((event) => getEventMonthStart(event) < todayMonthStart);
   }, [events, segmentIndex, today]);
 
-  if (loading && events.length === 0) {
+  if (authLoading || (loading && events.length === 0)) {
     return (
       <>
         <Stack.Screen options={{ headerTitle: () => null, headerLargeTitle: false }} />
         <View style={[styles.screen, styles.centered]}>
           <ActivityIndicator size="large" color={theme.labelColors.primary} />
+        </View>
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Stack.Screen
+          options={{
+            headerTitle: () => null,
+            headerLargeTitle: false,
+            headerTintColor: theme.labelColors.primary,
+            headerLeft: ({ tintColor }) => (
+              <Pressable
+                onPress={() => router.push('/profile')}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  pressed && styles.headerButtonPressed,
+                ]}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="person-circle-outline"
+                  size={28}
+                  color={tintColor ?? theme.labelColors.primary}
+                />
+              </Pressable>
+            ),
+          }}
+        />
+        <View style={[styles.screen, styles.centered]}>
+          <Text style={styles.emptyTitle}>Sign in to see your saved events</Text>
+          <Text style={styles.emptySubtitle}>
+            Save events from the Events tab and they'll appear here.
+          </Text>
+          <Pressable
+            onPress={() => router.push('/auth')}
+            style={({ pressed }) => [
+              styles.ctaButton,
+              pressed && styles.ctaButtonPressed,
+            ]}
+          >
+            <Text style={styles.ctaLabel}>Sign in with email</Text>
+          </Pressable>
         </View>
       </>
     );
@@ -185,6 +223,7 @@ export default function SavedScreen() {
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -196,30 +235,19 @@ export default function SavedScreen() {
           }
           ListHeaderComponent={
             <View style={styles.segmentedContainer}>
-              <View style={styles.segmentedBackground}>
-                {['All', 'Upcoming', 'Past'].map((label, index) => {
-                  const selected = index === segmentIndex;
-                  return (
-                    <Pressable
-                      key={label}
-                      onPress={() => setSegmentIndex(index)}
-                      style={[
-                        styles.segmentButton,
-                        selected && styles.segmentButtonSelected,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentLabel,
-                          selected && styles.segmentLabelSelected,
-                        ]}
-                      >
-                        {label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <SegmentedControl
+                style={styles.segmented}
+                values={['Coming Up', 'Previous']}
+                selectedIndex={segmentIndex}
+                onChange={(event) =>
+                  setSegmentIndex(event.nativeEvent.selectedSegmentIndex)
+                }
+                appearance={theme.isDark ? 'dark' : 'light'}
+                backgroundColor={theme.isDark ? '#2c2c2e' : '#ededed'}
+                tintColor={theme.isDark ? '#ffffff' : '#ffffff'}
+                fontStyle={{ color: theme.labelColors.secondary }}
+                activeFontStyle={{ color: theme.labelColors.primary }}
+              />
             </View>
           }
           renderItem={({ item }) => (
@@ -265,34 +293,9 @@ function createStyles(theme: AppTheme) {
     segmentedContainer: {
       marginBottom: 24,
     },
-    segmentedBackground: {
-      flexDirection: 'row',
-      backgroundColor: theme.palette.cardMuted,
+    segmented: {
       borderRadius: 999,
-      padding: 4,
-      gap: 4,
-    },
-    segmentButton: {
-      flex: 1,
-      height: 32,
-      borderRadius: 999,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    segmentButtonSelected: {
-      backgroundColor: theme.palette.card,
-      shadowColor: theme.palette.shadowColor,
-      shadowOpacity: 0.08,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
-    },
-    segmentLabel: {
-      ...body.regular,
-      color: theme.labelColors.secondary,
-    },
-    segmentLabelSelected: {
-      color: theme.labelColors.primary,
+      overflow: 'hidden',
     },
     row: {
       justifyContent: 'space-between',
@@ -317,6 +320,20 @@ function createStyles(theme: AppTheme) {
       ...body.regular,
       color: theme.labelColors.secondary,
       textAlign: 'center',
+      marginBottom: 24,
+    },
+    ctaButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+      backgroundColor: theme.palette.primaryButtonBackground,
+    },
+    ctaButtonPressed: {
+      opacity: 0.8,
+    },
+    ctaLabel: {
+      ...body.emphasized,
+      color: theme.palette.primaryButtonText,
     },
     headerButton: {
       width: 44,

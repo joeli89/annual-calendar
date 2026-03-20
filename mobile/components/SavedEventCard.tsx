@@ -13,6 +13,17 @@ import {
 } from '../design-system';
 import type { Event } from '../types/event';
 
+// Format a single start date label from a display range like
+// "10th to 14th March 2026" → "10th March 2026".
+function getStartDateLabel(displayRange: string): string {
+  const rangeMatch = displayRange.match(/^(\S+)\s+to\s+(\S+)\s+(.+)$/);
+  if (!rangeMatch) {
+    return displayRange;
+  }
+  const [, startDay, , monthYear] = rangeMatch;
+  return `${startDay} ${monthYear}`;
+}
+
 type SavedEventCardProps = {
   event: Event;
   onPress: (eventId: string) => void;
@@ -50,7 +61,7 @@ export function SavedEventCard({
             {event.title}
           </Text>
           <Text style={styles.date} numberOfLines={1}>
-            {event.dateRange}
+            {getStartDateLabel(event.dateRange)}
           </Text>
         </View>
 
@@ -72,7 +83,7 @@ function createStyles(theme: AppTheme) {
       width: 175,
       backgroundColor: theme.palette.card,
       borderRadius: 24,
-      borderWidth: 0.5,
+      borderWidth: 0.33,
       borderColor: theme.palette.cardBorder,
       paddingHorizontal: 8,
       paddingTop: 8,

@@ -3,6 +3,7 @@
  * Why: Match the Figma event detail layout without changing shared data contracts.
  */
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -12,10 +13,12 @@ import {
   Easing,
   FlatList,
   Image,
+  Platform,
   Pressable,
   Share,
   StyleSheet,
   Text,
+  ToastAndroid,
   View,
 } from 'react-native';
 
@@ -144,6 +147,14 @@ export default function EventDetailScreen() {
     });
   };
 
+  const showFavoriteFeedback = (message: string) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+      return;
+    }
+    showToast(message);
+  };
+
   const handleToggleFavorite = async () => {
     if (!event) return;
     if (!user) {
@@ -153,15 +164,15 @@ export default function EventDetailScreen() {
     const wasFavorited = isFavorited;
     const result = await toggleFavorite(event.id);
     if (result.error) {
-      showToast('Something went wrong. Please try again.');
+      showFavoriteFeedback('Something went wrong. Please try again.');
       return;
     }
     setIsFavorited(result.favorited);
     playFavoriteAnimation();
     if (!wasFavorited && result.favorited) {
-      showToast('Saved to your events');
+      showFavoriteFeedback('Saved to your events.');
     } else if (wasFavorited && !result.favorited) {
-      showToast('Removed from saved events');
+      showFavoriteFeedback('Removed from saved events.');
     }
   };
 
@@ -615,7 +626,13 @@ export default function EventDetailScreen() {
               },
             ]}
           >
-            <Text style={styles.toastText}>{toastMessage}</Text>
+            <BlurView
+              intensity={80}
+              tint={theme.isDark ? 'dark' : 'light'}
+              style={styles.toastBlur}
+            >
+              <Text style={styles.toastText}>{toastMessage}</Text>
+            </BlurView>
           </Animated.View>
         )}
       </View>
@@ -879,17 +896,24 @@ function createStyles(theme: AppTheme) {
       left: 24,
       right: 24,
       bottom: 32,
-      borderRadius: 999,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      backgroundColor: theme.palette.frostedSurface,
+      zIndex: 4,
+      borderRadius: 18,
+      overflow: 'hidden',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.isDark
+        ? 'rgba(255, 255, 255, 0.28)'
+        : 'rgba(255, 255, 255, 0.95)',
+      shadowColor: theme.palette.shadowColor,
+      shadowOpacity: 0.16,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 4,
+    },
+    toastBlur: {
+      paddingVertical: 14,
+      paddingHorizontal: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: theme.palette.shadowColor,
-      shadowOpacity: 0.18,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 6 },
-      elevation: 4,
     },
     toastText: {
       ...subheadline.regular,

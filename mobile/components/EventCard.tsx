@@ -2,7 +2,7 @@
  * Intent: Render a premium event card UI.
  * Why: Reuse consistent card layout across the Events list.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -51,22 +51,74 @@ function EventCardButton({
   );
 }
 
+/** Tracks which images have finished loading so we can hide skeletons. */
+type ImageLoadState = { main: boolean; side0: boolean; side1: boolean; map: boolean };
+
 export function EventCard({ event, onPress }: EventCardProps) {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [loaded, setLoaded] = useState<ImageLoadState>({
+    main: false,
+    side0: false,
+    side1: false,
+    map: false,
+  });
+
+  const setMainLoaded = () => setLoaded((s) => ({ ...s, main: true }));
+  const setSide0Loaded = () => setLoaded((s) => ({ ...s, side0: true }));
+  const setSide1Loaded = () => setLoaded((s) => ({ ...s, side1: true }));
+  const setMapLoaded = () => setLoaded((s) => ({ ...s, map: true }));
+
+  const hasMap = event.latitude != null && event.longitude != null;
 
   return (
     <View style={styles.card}>
       <View style={styles.imageRow}>
         <View style={styles.mainImageWrapper}>
-          <Image source={{ uri: event.mainImageUrl }} style={styles.mainImage} />
+          <Image
+            source={{ uri: event.mainImageUrl }}
+            style={styles.mainImage}
+            onLoadEnd={setMainLoaded}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              styles.skeleton,
+              { opacity: loaded.main ? 0 : 1 },
+            ]}
+            pointerEvents="none"
+          />
         </View>
         <View style={styles.sideImages}>
           <View style={styles.sideImageTop}>
-            <Image source={{ uri: event.sideImageUrls[0] }} style={styles.sideImage} />
+            <Image
+              source={{ uri: event.sideImageUrls[0] }}
+              style={styles.sideImage}
+              onLoadEnd={setSide0Loaded}
+            />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                styles.skeleton,
+                { opacity: loaded.side0 ? 0 : 1 },
+              ]}
+              pointerEvents="none"
+            />
           </View>
           <View style={styles.sideImageBottom}>
-            <Image source={{ uri: event.sideImageUrls[1] }} style={styles.sideImage} />
+            <Image
+              source={{ uri: event.sideImageUrls[1] }}
+              style={styles.sideImage}
+              onLoadEnd={setSide1Loaded}
+            />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                styles.skeleton,
+                { opacity: loaded.side1 ? 0 : 1 },
+              ]}
+              pointerEvents="none"
+            />
           </View>
         </View>
       </View>
@@ -80,13 +132,24 @@ export function EventCard({ event, onPress }: EventCardProps) {
             <Text style={styles.locationText}>{event.location}</Text>
           </View>
           <View style={styles.mapWrapper}>
-            {event.latitude != null && event.longitude != null ? (
-              <Image
-                source={{
-                  uri: getStaticMapTileUrl(event.latitude, event.longitude),
-                }}
-                style={styles.mapImage}
-              />
+            {hasMap ? (
+              <>
+                <Image
+                  source={{
+                    uri: getStaticMapTileUrl(event.latitude!, event.longitude!),
+                  }}
+                  style={styles.mapImage}
+                  onLoadEnd={setMapLoaded}
+                />
+                <View
+                  style={[
+                    StyleSheet.absoluteFill,
+                    styles.skeleton,
+                    { opacity: loaded.map ? 0 : 1 },
+                  ]}
+                  pointerEvents="none"
+                />
+              </>
             ) : (
               <View style={styles.mapPlaceholder} />
             )}
@@ -121,6 +184,10 @@ function createStyles(theme: AppTheme) {
     imageRow: {
       flexDirection: 'row',
       gap: 4,
+    },
+    skeleton: {
+      backgroundColor: theme.palette.placeholder,
+      borderRadius: 0,
     },
     mainImageWrapper: {
       flex: 2,

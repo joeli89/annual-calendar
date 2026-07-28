@@ -21,6 +21,12 @@ export type EventRow = {
   website_url: string | null;
   instagram_url: string | null;
   x_url: string | null;
+  social_links: Record<string, string> | null;
+  host_name: string | null;
+  host_logo_url: string | null;
+  visibility: string | null;
+  access_type: string | null;
+  exhibiting_brands: string[] | null;
   tags: string[];
   is_published: boolean;
   created_at: string;

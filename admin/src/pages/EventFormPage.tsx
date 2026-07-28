@@ -35,6 +35,11 @@ const emptyForm = {
   website_url: '',
   instagram_url: '',
   x_url: '',
+  host_name: '',
+  host_logo_url: '',
+  visibility: 'public',
+  access_type: 'free',
+  exhibiting_brands: [] as string[],
   tags: [] as string[],
   is_published: true,
 };
@@ -62,6 +67,11 @@ function toFormRow(row: EventRow) {
     website_url: row.website_url ?? '',
     instagram_url: row.instagram_url ?? '',
     x_url: row.x_url ?? '',
+    host_name: row.host_name ?? '',
+    host_logo_url: row.host_logo_url ?? '',
+    visibility: row.visibility ?? 'public',
+    access_type: row.access_type ?? 'free',
+    exhibiting_brands: row.exhibiting_brands ?? [],
     tags: row.tags ?? [],
     is_published: row.is_published,
   };
@@ -193,6 +203,11 @@ export function EventFormPage() {
       website_url: form.website_url.trim() || null,
       instagram_url: form.instagram_url.trim() || null,
       x_url: form.x_url.trim() || null,
+      host_name: form.host_name.trim() || null,
+      host_logo_url: form.host_logo_url.trim() || null,
+      visibility: form.visibility,
+      access_type: form.access_type,
+      exhibiting_brands: form.exhibiting_brands,
       tags,
       is_published: form.is_published,
     };
@@ -293,6 +308,50 @@ export function EventFormPage() {
         </section>
 
         <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Host &amp; entry</h2>
+          <label className={styles.label}>
+            Host name
+            <input
+              value={form.host_name}
+              onChange={(e) => update('host_name', e.target.value)}
+              placeholder="Watches &amp; Wonders Geneva"
+              className={styles.input}
+            />
+          </label>
+          <label className={styles.label}>
+            Host logo URL
+            <input
+              type="url"
+              value={form.host_logo_url}
+              onChange={(e) => update('host_logo_url', e.target.value)}
+              className={styles.input}
+            />
+          </label>
+          <label className={styles.label}>
+            Visibility
+            <select
+              value={form.visibility}
+              onChange={(e) => update('visibility', e.target.value)}
+              className={styles.input}
+            >
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </label>
+          <label className={styles.label}>
+            Entry
+            <select
+              value={form.access_type}
+              onChange={(e) => update('access_type', e.target.value)}
+              className={styles.input}
+            >
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+            </select>
+          </label>
+        </section>
+
+        <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Dates</h2>
           <label className={styles.label}>
             Display date range (e.g. “24th to 26th February 2026”)
@@ -334,6 +393,33 @@ export function EventFormPage() {
               onChange={(e) => update('location_name', e.target.value)}
               required
               placeholder="Geneva, Switzerland"
+              className={styles.input}
+            />
+          </label>
+          <label className={styles.label}>
+            Address line 1
+            <input
+              value={form.address_line1}
+              onChange={(e) => update('address_line1', e.target.value)}
+              placeholder="Quai du Seujet 36"
+              className={styles.input}
+            />
+          </label>
+          <label className={styles.label}>
+            City
+            <input
+              value={form.city}
+              onChange={(e) => update('city', e.target.value)}
+              placeholder="Genève"
+              className={styles.input}
+            />
+          </label>
+          <label className={styles.label}>
+            Country
+            <input
+              value={form.country}
+              onChange={(e) => update('country', e.target.value)}
+              placeholder="Switzerland"
               className={styles.input}
             />
           </label>
@@ -479,6 +565,28 @@ export function EventFormPage() {
                 )
               }
               placeholder="watch-fair, geneva"
+              className={styles.input}
+            />
+          </label>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Exhibiting brands</h2>
+          <label className={styles.label}>
+            Brand names (comma or new-line separated)
+            <textarea
+              value={form.exhibiting_brands.join('\n')}
+              onChange={(e) =>
+                update(
+                  'exhibiting_brands',
+                  e.target.value
+                    .split(/[\n,]/)
+                    .map((b) => b.trim())
+                    .filter(Boolean)
+                )
+              }
+              rows={4}
+              placeholder={'Rolex\nPatek Philippe\nAudemars Piguet'}
               className={styles.input}
             />
           </label>

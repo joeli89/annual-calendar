@@ -39,7 +39,7 @@ const emptyForm = {
   host_logo_url: '',
   visibility: 'public',
   access_type: 'free',
-  exhibiting_brands: [] as string[],
+  exhibiting_brands: '',
   tags: [] as string[],
   is_published: true,
 };
@@ -71,7 +71,7 @@ function toFormRow(row: EventRow) {
     host_logo_url: row.host_logo_url ?? '',
     visibility: row.visibility ?? 'public',
     access_type: row.access_type ?? 'free',
-    exhibiting_brands: row.exhibiting_brands ?? [],
+    exhibiting_brands: (row.exhibiting_brands ?? []).join('\n'),
     tags: row.tags ?? [],
     is_published: row.is_published,
   };
@@ -207,7 +207,10 @@ export function EventFormPage() {
       host_logo_url: form.host_logo_url.trim() || null,
       visibility: form.visibility,
       access_type: form.access_type,
-      exhibiting_brands: form.exhibiting_brands,
+      exhibiting_brands: form.exhibiting_brands
+        .split(/[\n,]/)
+        .map((b) => b.trim())
+        .filter(Boolean),
       tags,
       is_published: form.is_published,
     };
@@ -575,16 +578,8 @@ export function EventFormPage() {
           <label className={styles.label}>
             Brand names (comma or new-line separated)
             <textarea
-              value={form.exhibiting_brands.join('\n')}
-              onChange={(e) =>
-                update(
-                  'exhibiting_brands',
-                  e.target.value
-                    .split(/[\n,]/)
-                    .map((b) => b.trim())
-                    .filter(Boolean)
-                )
-              }
+              value={form.exhibiting_brands}
+              onChange={(e) => update('exhibiting_brands', e.target.value)}
               rows={4}
               placeholder={'Rolex\nPatek Philippe\nAudemars Piguet'}
               className={styles.input}

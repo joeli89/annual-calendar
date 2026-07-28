@@ -21,6 +21,9 @@ if (supabaseUrl && supabaseAnonKey) {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
+      // PKCE: magic link returns ?code= (query survives the iOS Safari->app hop;
+      // the old implicit flow returned tokens in the #fragment, which iOS drops).
+      flowType: 'pkce',
     },
   });
 }

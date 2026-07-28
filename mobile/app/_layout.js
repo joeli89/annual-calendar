@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import { useFonts } from 'expo-font';
 import * as Linking from 'expo-linking';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -40,6 +41,17 @@ function DeepLinkHandler() {
 
 export default function RootLayout() {
   const theme = useAppTheme();
+
+  // Load Playfair Display (used by the Title text styles). Wait for the fonts
+  // before first paint so headings don't flash in the system font; still render
+  // if the load errors so the app never gets stuck on a blank screen.
+  const [fontsLoaded, fontError] = useFonts({
+    'PlayfairDisplay-Regular': require('../assets/fonts/PlayfairDisplay-Regular.ttf'),
+    'PlayfairDisplay-SemiBold': require('../assets/fonts/PlayfairDisplay-SemiBold.ttf'),
+    'PlayfairDisplay-Bold': require('../assets/fonts/PlayfairDisplay-Bold.ttf'),
+  });
+
+  if (!fontsLoaded && !fontError) return null;
 
   // Dark status bar content (time, icons) for contrast on light backgrounds; light content when theme is dark.
   const statusBarStyle = theme.isDark ? 'light' : 'dark';

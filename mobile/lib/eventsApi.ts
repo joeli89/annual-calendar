@@ -31,10 +31,23 @@ export type EventsRow = {
   x_url: string | null;
   tags: string[];
   is_published: boolean;
+  visibility: string | null;
+  access_type: string | null;
+  social_links: Record<string, string> | null;
+  host_name: string | null;
+  host_logo_url: string | null;
+  exhibiting_brands: string[] | null;
 };
 
 const MAP_IMAGE_PLACEHOLDER =
   'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=200&q=80';
+
+function formatAddress(row: EventsRow): string {
+  const parts = [row.address_line1, row.city, row.country].filter(
+    (p): p is string => !!p && p.trim().length > 0
+  );
+  return parts.length ? parts.join(', ') : row.location_name;
+}
 
 function rowToEvent(row: EventsRow): Event {
   const start = new Date(row.start_at);
@@ -43,6 +56,9 @@ function rowToEvent(row: EventsRow): Event {
     sideUrls[0] ?? row.hero_image_url,
     sideUrls[1] ?? row.hero_image_url,
   ];
+  const imageUrls = [row.hero_image_url, ...sideUrls].filter(
+    (u): u is string => !!u
+  );
   return {
     id: row.id,
     title: row.title,
@@ -57,6 +73,21 @@ function rowToEvent(row: EventsRow): Event {
     ...(row.latitude != null && row.longitude != null
       ? { latitude: row.latitude, longitude: row.longitude }
       : {}),
+    imageUrls,
+    address: formatAddress(row),
+    hostName: row.host_name,
+    hostLogoUrl: row.host_logo_url,
+    visibility: row.visibility === 'private' ? 'private' : 'public',
+    accessType: row.access_type === 'paid' ? 'paid' : 'free',
+    websiteUrl: row.website_url,
+    instagramUrl: row.instagram_url,
+    xUrl: row.x_url,
+    startAt: row.start_at,
+    endAt: row.end_at,
+    isAllDay: row.is_all_day,
+    exhibitingBrands: Array.isArray(row.exhibiting_brands)
+      ? row.exhibiting_brands
+      : [],
   };
 }
 

@@ -13,6 +13,7 @@ import {
   Easing,
   FlatList,
   Image,
+  Linking,
   Platform,
   Pressable,
   Share,
@@ -32,6 +33,7 @@ import {
 import { useAuth } from '../../lib/useAuth';
 import {
   body,
+  footnote,
   subheadline,
   title1,
   title2,
@@ -42,7 +44,7 @@ import {
 
 const HERO_HEIGHT = 485;
 const INITIAL_DESCRIPTION_LINES = 4;
-const SHEET_ENTRY_SECTION_COUNT = 5;
+const SHEET_ENTRY_SECTION_COUNT = 6;
 type LinkAction = {
   key: 'website' | 'instagram' | 'x';
   label: string;
@@ -65,6 +67,47 @@ function getGoogleMapsEmbedUrl(location: string) {
 
 const DEFAULT_MAP_LAT = 51.5074;
 const DEFAULT_MAP_LNG = -0.1278;
+
+/** Format an event's start/end timestamps into day + time labels for the date card. */
+function formatStartEnd(event: {
+  startAt?: string;
+  endAt?: string;
+  isAllDay?: boolean;
+}): {
+  hasStartEnd: boolean;
+  startDay: string;
+  startTime: string | null;
+  endDay: string;
+  endTime: string | null;
+} {
+  if (!event.startAt || !event.endAt) {
+    return {
+      hasStartEnd: false,
+      startDay: '',
+      startTime: null,
+      endDay: '',
+      endTime: null,
+    };
+  }
+  const fmtDay = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  return {
+    hasStartEnd: true,
+    startDay: fmtDay(event.startAt),
+    startTime: event.isAllDay ? null : fmtTime(event.startAt),
+    endDay: fmtDay(event.endAt),
+    endTime: event.isAllDay ? null : fmtTime(event.endAt),
+  };
+}
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -237,7 +280,25 @@ export default function EventDetailScreen() {
   const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
   const infiniteHeroImages = [...heroImages, ...heroImages, ...heroImages];
 
-  const description = `${event.description}\n\n${event.description}`;
+  const description = event.description;
+  const visibilityLabel =
+    event.visibility === 'private' ? 'Private Event' : 'Public Event';
+  const visibilityIcon: keyof typeof Ionicons.glyphMap =
+    event.visibility === 'private' ? 'lock-closed-outline' : 'globe-outline';
+  const accessLabel = event.accessType === 'paid' ? 'Paid event' : 'Free event';
+  const accessIcon: keyof typeof Ionicons.glyphMap =
+    event.accessType === 'paid' ? 'cash-outline' : 'gift-outline';
+  const linkUrlByKey: Record<LinkAction['key'], string | null | undefined> = {
+    website: event.websiteUrl,
+    instagram: event.instagramUrl,
+    x: event.xUrl,
+  };
+  const availableLinks = LINK_ACTIONS.filter((a) => !!linkUrlByKey[a.key]);
+  const dateParts = formatStartEnd(event);
+  const openUrl = (url?: string | null) => {
+    if (url) Linking.openURL(url).catch(() => {});
+  };
+  const handleOpenWebsite = () => openUrl(event.websiteUrl);
   const shareMessage = [
     event.title,
     `${event.dateRange} • ${event.location}`,
@@ -425,57 +486,97 @@ export default function EventDetailScreen() {
             <Animated.View style={sheetSectionEntryStyles[0]}>
               <View style={styles.titleBlock}>
                 <Text style={styles.title}>{event.title}</Text>
-                <Text style={styles.location}>{event.location}</Text>
+                {event.hostName ? (
+                  <View style={styles.hostRow}>
+                    {event.hostLogoUrl ? (
+                      <View style={styles.hostAvatarRing}>
+                        <Image
+                          source={{ uri: event.hostLogoUrl }}
+                          style={styles.hostAvatar}
+                        />
+                      </View>
+                    ) : null}
+                    <Text style={styles.hostText}>Hosted by {event.hostName}</Text>
+                  </View>
+                ) : null}
               </View>
             </Animated.View>
 
             <Animated.View style={sheetSectionEntryStyles[1]}>
-              <EventDateCard dateRange={event.dateRange} />
+              {dateParts.hasStartEnd ? (
+                <View style={styles.dateCard}>
+                  <View style={styles.dateCol}>
+                    <Text style={styles.dateColLabel}>Start</Text>
+                    <Text style={styles.dateColDay}>{dateParts.startDay}</Text>
+                    {dateParts.startTime ? (
+                      <Text style={styles.dateColTime}>{dateParts.startTime}</Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.dateDivider} />
+                  <View style={[styles.dateCol, styles.dateColEnd]}>
+                    <Text style={styles.dateColLabel}>End</Text>
+                    <Text style={styles.dateColDay}>{dateParts.endDay}</Text>
+                    {dateParts.endTime ? (
+                      <Text style={styles.dateColTime}>{dateParts.endTime}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ) : (
+                <EventDateCard dateRange={event.dateRange} />
+              )}
             </Animated.View>
 
             <View style={styles.separator} />
 
             <Animated.View style={sheetSectionEntryStyles[2]}>
               <View style={styles.section}>
-                <View style={styles.primaryButtonContainer}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {}}
-                    style={({ pressed }) => [
-                      styles.primaryButton,
-                      pressed && styles.primaryButtonPressed,
-                    ]}
-                  >
-                    <Text style={styles.primaryButtonLabel}>Get tickets</Text>
-                  </Pressable>
-                </View>
-                <View style={styles.separator} />
+                {event.websiteUrl ? (
+                  <View style={styles.primaryButtonContainer}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={handleOpenWebsite}
+                      style={({ pressed }) => [
+                        styles.primaryButton,
+                        pressed && styles.primaryButtonPressed,
+                      ]}
+                    >
+                      <Text style={styles.primaryButtonLabel}>
+                        View Events Website
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
 
-                <View style={styles.actionsRow}>
-                  {LINK_ACTIONS.map((action, index) => (
-                    <View key={action.key} style={styles.actionCellWrapper}>
-                      <Pressable
-                        accessibilityLabel={action.label}
-                        accessibilityRole="button"
-                        onPress={() => {}}
-                        style={({ pressed }) => [
-                          styles.actionCell,
-                          pressed && styles.actionCellPressed,
-                        ]}
-                      >
-                        <Ionicons
-                          color={theme.labelColors.primary}
-                          name={action.icon}
-                          size={18}
-                        />
-                        <Text style={styles.actionLabel}>{action.label}</Text>
-                      </Pressable>
-                      {index < LINK_ACTIONS.length - 1 ? (
-                        <View style={styles.actionSeparator} />
-                      ) : null}
+                {availableLinks.length > 0 ? (
+                  <>
+                    <View style={styles.separator} />
+                    <View style={styles.actionsRow}>
+                      {availableLinks.map((action, index) => (
+                        <View key={action.key} style={styles.actionCellWrapper}>
+                          <Pressable
+                            accessibilityLabel={action.label}
+                            accessibilityRole="button"
+                            onPress={() => openUrl(linkUrlByKey[action.key])}
+                            style={({ pressed }) => [
+                              styles.actionCell,
+                              pressed && styles.actionCellPressed,
+                            ]}
+                          >
+                            <Ionicons
+                              color={theme.labelColors.primary}
+                              name={action.icon}
+                              size={18}
+                            />
+                            <Text style={styles.actionLabel}>{action.label}</Text>
+                          </Pressable>
+                          {index < availableLinks.length - 1 ? (
+                            <View style={styles.actionSeparator} />
+                          ) : null}
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
+                  </>
+                ) : null}
               </View>
             </Animated.View>
 
@@ -483,33 +584,80 @@ export default function EventDetailScreen() {
 
             <Animated.View style={sheetSectionEntryStyles[3]}>
               <View style={styles.section}>
-                <Text
-                  numberOfLines={isDescriptionExpanded ? undefined : INITIAL_DESCRIPTION_LINES}
-                  style={styles.description}
-                >
-                  {description}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setIsDescriptionExpanded((value) => !value)}
-                  style={({ pressed }) => [
-                    styles.readMoreButton,
-                    pressed && styles.readMoreButtonPressed,
-                  ]}
-                >
-                  <Text style={styles.readMoreText}>
-                    {isDescriptionExpanded ? 'read less' : 'read more'}
+                <Text style={styles.sectionTitle}>Event details</Text>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Event type</Text>
+                  <View style={styles.infoValueRow}>
+                    <Ionicons
+                      color={theme.labelColors.primary}
+                      name={visibilityIcon}
+                      size={17}
+                    />
+                    <Text style={styles.infoValue}>{visibilityLabel}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Entry fee</Text>
+                  <View style={styles.infoValueRow}>
+                    <Ionicons
+                      color={theme.labelColors.primary}
+                      name={accessIcon}
+                      size={17}
+                    />
+                    <Text style={styles.infoValue}>{accessLabel}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Description</Text>
+                  <Text
+                    numberOfLines={
+                      isDescriptionExpanded ? undefined : INITIAL_DESCRIPTION_LINES
+                    }
+                    style={styles.description}
+                  >
+                    {description}
                   </Text>
-                </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setIsDescriptionExpanded((value) => !value)}
+                    style={({ pressed }) => [
+                      styles.readMoreButton,
+                      pressed && styles.readMoreButtonPressed,
+                    ]}
+                  >
+                    <Text style={styles.readMoreText}>
+                      {isDescriptionExpanded ? 'read less' : 'read more'}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             </Animated.View>
 
             <View style={styles.separator} />
 
-            <Animated.View style={sheetSectionEntryStyles[4]}>
+            {event.exhibitingBrands && event.exhibitingBrands.length > 0 ? (
+              <>
+                <Animated.View style={sheetSectionEntryStyles[4]}>
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Exhibiting Brands</Text>
+                    <Text style={styles.brandsText}>
+                      {event.exhibitingBrands.join('  •  ')}
+                    </Text>
+                  </View>
+                </Animated.View>
+                <View style={styles.separator} />
+              </>
+            ) : null}
+
+            <Animated.View style={sheetSectionEntryStyles[5]}>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Where it will be</Text>
-                <Text style={styles.sectionLocation}>{event.location}</Text>
+                <Text style={styles.sectionTitle}>Location</Text>
+                <Text style={styles.sectionLocation}>
+                  {event.address ?? event.location}
+                </Text>
 
                 <View style={styles.mapCard}>
                   <EventMap
@@ -533,6 +681,24 @@ export default function EventDetailScreen() {
                     />
                   </Pressable>
                 </View>
+
+                {event.websiteUrl ? (
+                  <>
+                    <View style={styles.separator} />
+                    <View style={styles.primaryButtonContainer}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleOpenWebsite}
+                        style={({ pressed }) => [
+                          styles.primaryButton,
+                          pressed && styles.primaryButtonPressed,
+                        ]}
+                      >
+                        <Text style={styles.primaryButtonLabel}>View Event</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                ) : null}
               </View>
             </Animated.View>
           </Animated.View>
@@ -752,6 +918,94 @@ function createStyles(theme: AppTheme) {
       color: theme.labelColors.secondary,
       textAlign: 'center',
     },
+    eyebrow: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+      textAlign: 'center',
+    },
+    hostRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      marginTop: 2,
+      paddingHorizontal: 8,
+    },
+    hostAvatarRing: {
+      padding: 4,
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.palette.separator,
+    },
+    hostAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+    },
+    hostText: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+      flexShrink: 1,
+    },
+    dateCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 24,
+      backgroundColor: theme.palette.cardMuted,
+      borderRadius: 24,
+      paddingHorizontal: 23,
+      paddingVertical: 16,
+    },
+    dateCol: {
+      flex: 1,
+      gap: 6,
+    },
+    dateColEnd: {
+      alignItems: 'flex-end',
+    },
+    dateColLabel: {
+      fontFamily: 'PlayfairDisplay-SemiBold',
+      fontSize: 15,
+      color: theme.labelColors.primary,
+    },
+    dateColDay: {
+      ...subheadline.regular,
+      color: theme.labelColors.primary,
+    },
+    dateColTime: {
+      ...subheadline.regular,
+      color: theme.labelColors.secondary,
+    },
+    dateDivider: {
+      width: StyleSheet.hairlineWidth,
+      height: 70,
+      backgroundColor: theme.palette.separator,
+    },
+    infoRow: {
+      gap: 8,
+    },
+    infoLabel: {
+      ...body.emphasized,
+      color: theme.labelColors.primary,
+    },
+    infoValueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    infoValue: {
+      ...body.regular,
+      color: theme.labelColors.primary,
+    },
+    brandsText: {
+      ...footnote.regular,
+      color: theme.labelColors.primary,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      lineHeight: 22,
+    },
     separator: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: theme.palette.separator,
@@ -776,7 +1030,7 @@ function createStyles(theme: AppTheme) {
       opacity: 0.72,
     },
     actionLabel: {
-      ...subheadline.regular,
+      ...footnote.regular,
       color: theme.labelColors.primary,
       textAlign: 'center',
     },
@@ -808,7 +1062,8 @@ function createStyles(theme: AppTheme) {
       opacity: 0.72,
     },
     primaryButtonLabel: {
-      ...subheadline.emphasized,
+      fontFamily: 'PlayfairDisplay-SemiBold',
+      fontSize: 15,
       color: theme.palette.primaryButtonText,
     },
     readMoreButton: {
@@ -828,7 +1083,7 @@ function createStyles(theme: AppTheme) {
       textAlign: 'center',
     },
     sectionTitle: {
-      ...title3.emphasized,
+      ...title1.emphasized,
       color: theme.labelColors.primary,
     },
     sectionLocation: {

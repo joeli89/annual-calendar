@@ -202,6 +202,47 @@ export async function toggleFavorite(
 }
 
 /**
+ * Add a favorite without toggling. Safe to call when the event is already
+ * saved (used when flushing a pending save intent after sign-in — calling
+ * toggleFavorite there would UN-save an already-saved event).
+ */
+export async function addFavorite(
+  eventId: string
+): Promise<{ favorited: boolean; alreadyFavorited: boolean; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) {
+    return { favorited: false, alreadyFavorited: false, error: 'Not configured' };
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { favorited: false, alreadyFavorited: false, error: 'Not authenticated' };
+  }
+  const { data: existing } = await supabase
+    .from('favorites')
+    .select('event_id')
+    .eq('user_id', user.id)
+    .eq('event_id', eventId)
+    .maybeSingle();
+  if (existing) {
+    return { favorited: true, alreadyFavorited: true };
+  }
+  const { error } = await supabase.from('favorites').insert({
+    user_id: user.id,
+    event_id: eventId,
+  });
+  if (error) {
+    // 23505 = unique_violation: another writer inserted first — still saved.
+    if (error.code === '23505') {
+      return { favorited: true, alreadyFavorited: true };
+    }
+    console.warn('Supabase addFavorite error:', error);
+    return { favorited: false, alreadyFavorited: false, error: error.message };
+  }
+  return { favorited: true, alreadyFavorited: false };
+}
+
+/**
  * Check if an event is favorited by the current user.
  */
 export async function isEventFavorited(eventId: string): Promise<boolean> {

@@ -8,8 +8,10 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
+import { OnboardingProvider } from '../components/onboarding/OnboardingContext';
 import { useAppTheme } from '../design-system';
 import { isAuthCallbackUrl, setSessionFromAuthUrl } from '../lib/auth';
+import { SaveIntentProvider } from '../lib/saveIntent';
 import { AuthProvider } from '../lib/useAuth';
 
 function DeepLinkHandler() {
@@ -59,8 +61,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
+      <SaveIntentProvider>
       <DeepLinkHandler />
       <BottomSheetModalProvider>
+        <OnboardingProvider>
         <StatusBar style={statusBarStyle} />
         <Stack
           screenOptions={{
@@ -92,7 +96,9 @@ export default function RootLayout() {
             options={{ headerShown: false, gestureEnabled: false }}
           />
         </Stack>
+        </OnboardingProvider>
       </BottomSheetModalProvider>
+      </SaveIntentProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

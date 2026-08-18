@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Stack, useRouter } from 'expo-router';
 
+import { useOnboarding } from '../components/onboarding/OnboardingContext';
 import { largeTitle, subheadline, useAppTheme, type AppTheme } from '../design-system';
 import { signOut } from '../lib/auth';
 import { useAuth } from '../lib/useAuth';
@@ -11,6 +12,7 @@ export default function ProfileScreen() {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user } = useAuth();
+  const { openOnboarding } = useOnboarding();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -49,13 +51,13 @@ export default function ProfileScreen() {
             </>
           ) : (
             <Pressable
-              onPress={() => router.push('/auth')}
+              onPress={openOnboarding}
               style={({ pressed }) => [
                 styles.ctaButton,
                 pressed && styles.ctaButtonPressed,
               ]}
             >
-              <Text style={styles.ctaLabel}>Sign in with email</Text>
+              <Text style={styles.ctaLabel}>Sign in</Text>
             </Pressable>
           )}
         </View>

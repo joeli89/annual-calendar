@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 
 import { SavedEventCard } from '../../../components/SavedEventCard';
+import { useOnboarding } from '../../../components/onboarding/OnboardingContext';
 import { useAppTheme, type AppTheme, body } from '../../../design-system';
 import type { Event } from '../../../types/event';
 import { fetchEvents, getFavoriteEventIds } from '../../../lib/eventsApi';
@@ -29,6 +30,7 @@ export default function SavedScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { openOnboarding } = useOnboarding();
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,13 +152,13 @@ export default function SavedScreen() {
             Save events from the Events tab and they'll appear here.
           </Text>
           <Pressable
-            onPress={() => router.push('/auth')}
+            onPress={openOnboarding}
             style={({ pressed }) => [
               styles.ctaButton,
               pressed && styles.ctaButtonPressed,
             ]}
           >
-            <Text style={styles.ctaLabel}>Sign in with email</Text>
+            <Text style={styles.ctaLabel}>Sign in</Text>
           </Pressable>
         </View>
       </>

@@ -31,7 +31,9 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       const result = await sendMagicLink(email);
-      if (result.ok) {
+      // `=== false` (not truthiness): strictNullChecks is off, so only
+      // equality comparisons narrow this discriminated union.
+      if (result.ok !== false) {
         setMessage({ type: 'success', text: 'Check your email for a sign-in link.' });
       } else {
         const text =
@@ -51,7 +53,7 @@ export default function AuthScreen() {
         options={{
           title: 'Sign in',
           headerShown: true,
-          headerBackTitleVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
           headerTintColor: theme.labelColors.primary,
         }}
       />

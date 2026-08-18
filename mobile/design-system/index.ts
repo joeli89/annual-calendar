@@ -24,6 +24,7 @@ export type {
 } from './colors';
 export {
   textStyles,
+  fontFamilies,
   largeTitle,
   title1,
   title2,

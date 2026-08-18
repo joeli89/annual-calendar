@@ -25,11 +25,14 @@ import {
 
 import { EventDateCard } from '../../components/EventDateCard';
 import { EventMap } from '../../components/EventMap';
+import { useOnboarding } from '../../components/onboarding/OnboardingContext';
+import { track } from '../../lib/analytics';
 import {
   fetchEventById,
   isEventFavorited,
   toggleFavorite,
 } from '../../lib/eventsApi';
+import { useSaveIntent } from '../../lib/saveIntent';
 import { useAuth } from '../../lib/useAuth';
 import {
   body,
@@ -116,6 +119,8 @@ export default function EventDetailScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user } = useAuth();
   const router = useRouter();
+  const { openOnboarding } = useOnboarding();
+  const { setPendingSave, lastFlushResult } = useSaveIntent();
   const [event, setEvent] = useState<Awaited<ReturnType<typeof fetchEventById>>>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -201,7 +206,11 @@ export default function EventDetailScreen() {
   const handleToggleFavorite = async () => {
     if (!event) return;
     if (!user) {
-      router.push('/auth');
+      // Preserve the save intent and present the onboarding sheet in place —
+      // never a full-screen navigation that drops the intent.
+      track('save_intent_started', { event_id: event.id, source: 'event_detail' });
+      setPendingSave({ eventId: event.id, source: 'event_detail' });
+      openOnboarding();
       return;
     }
     const wasFavorited = isFavorited;
@@ -218,6 +227,27 @@ export default function EventDetailScreen() {
       showFavoriteFeedback('Removed from saved events.');
     }
   };
+
+  // When the pending save intent is flushed after sign-in (possibly while the
+  // onboarding sheet is still up), reflect it: fill the heart + confirm.
+  const handledFlushAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (!event || !lastFlushResult) return;
+    if (lastFlushResult.eventId !== event.id) return;
+    if (handledFlushAt.current === lastFlushResult.at) return;
+    handledFlushAt.current = lastFlushResult.at;
+    if (
+      lastFlushResult.outcome === 'saved' ||
+      lastFlushResult.outcome === 'already_saved'
+    ) {
+      setIsFavorited(true);
+      playFavoriteAnimation();
+      showFavoriteFeedback('Saved to your events.');
+    } else if (lastFlushResult.outcome === 'error') {
+      showFavoriteFeedback('Couldn’t save the event. Tap the heart to retry.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastFlushResult, event]);
 
   useEffect(() => {
     sheetSectionEnterValues.forEach((value) => value.setValue(0));
@@ -277,7 +307,10 @@ export default function EventDetailScreen() {
       </>
     );
   }
-  const heroImages = [event.mainImageUrl, ...event.sideImageUrls];
+  const heroImages =
+    event.imageUrls && event.imageUrls.length > 0
+      ? Array.from(new Set(event.imageUrls))
+      : [event.mainImageUrl];
   const infiniteHeroImages = [...heroImages, ...heroImages, ...heroImages];
 
   const description = event.description;

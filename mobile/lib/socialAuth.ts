@@ -12,15 +12,54 @@
  *   ID (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) registered in the Supabase dashboard.
  */
 import { Platform } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 
 import { supabase, isSupabaseConfigured } from './supabase';
+
+/**
+ * Native modules are loaded LAZILY, never as top-level imports.
+ *
+ * Both packages register TurboModules at import time and throw
+ * (`TurboModuleRegistry.getEnforcing(...): 'X' could not be found`) when the
+ * running binary predates them. Because this file is pulled in by the
+ * onboarding context at startup, a static import turns "one provider is
+ * missing from this build" into "the entire app fails to boot".
+ *
+ * Requiring inside a try/catch keeps the app bootable on any binary: a
+ * provider whose native side is absent simply reports itself unavailable and
+ * the other one still works.
+ */
+type AppleModule = typeof import('expo-apple-authentication');
+type GoogleModule = typeof import('@react-native-google-signin/google-signin');
+
+// undefined = not yet attempted, null = attempted and unavailable
+let appleModule: AppleModule | null | undefined;
+let googleModule: GoogleModule | null | undefined;
+
+function loadApple(): AppleModule | null {
+  if (appleModule === undefined) {
+    try {
+      appleModule = require('expo-apple-authentication') as AppleModule;
+    } catch {
+      appleModule = null;
+    }
+  }
+  return appleModule;
+}
+
+function loadGoogle(): GoogleModule | null {
+  if (googleModule === undefined) {
+    try {
+      googleModule = require('@react-native-google-signin/google-signin') as GoogleModule;
+    } catch {
+      googleModule = null;
+    }
+  }
+  return googleModule;
+}
+
+/** Native module missing from this binary — needs a rebuild, not a config change. */
+const NOT_IN_BINARY =
+  'This sign-in method is not available in this build. Rebuild the app to enable it.';
 
 export type SocialAuthResult =
   | {
@@ -41,17 +80,21 @@ const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 let googleConfigured = false;
 
-function configureGoogle(): boolean {
-  if (googleConfigured) return true;
-  if (!GOOGLE_WEB_CLIENT_ID) return false;
-  GoogleSignin.configure({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    ...(Platform.OS === 'ios' && GOOGLE_IOS_CLIENT_ID
-      ? { iosClientId: GOOGLE_IOS_CLIENT_ID }
-      : {}),
-  });
-  googleConfigured = true;
-  return true;
+/** Load + configure Google once. Returns null when unavailable. */
+function configureGoogle(): GoogleModule | null {
+  const google = loadGoogle();
+  if (!google) return null;
+  if (!GOOGLE_WEB_CLIENT_ID) return null;
+  if (!googleConfigured) {
+    google.GoogleSignin.configure({
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      ...(Platform.OS === 'ios' && GOOGLE_IOS_CLIENT_ID
+        ? { iosClientId: GOOGLE_IOS_CLIENT_ID }
+        : {}),
+    });
+    googleConfigured = true;
+  }
+  return google;
 }
 
 function joinName(
@@ -73,6 +116,10 @@ export async function signInWithApple(): Promise<SocialAuthResult> {
       code: 'unavailable',
       error: 'Apple sign-in is only available on iOS',
     };
+  }
+  const AppleAuthentication = loadApple();
+  if (!AppleAuthentication) {
+    return { ok: false, code: 'unavailable', error: NOT_IN_BINARY };
   }
   try {
     const credential = await AppleAuthentication.signInAsync({
@@ -117,13 +164,17 @@ export async function signInWithGoogle(): Promise<SocialAuthResult> {
   if (!isSupabaseConfigured() || !supabase) {
     return { ok: false, code: 'unavailable', error: 'Auth is not configured' };
   }
-  if (!configureGoogle()) {
+  const google = configureGoogle();
+  if (!google) {
     return {
       ok: false,
       code: 'unavailable',
-      error: 'Google sign-in is not configured (missing client IDs)',
+      error: loadGoogle()
+        ? 'Google sign-in is not configured (missing client IDs)'
+        : NOT_IN_BINARY,
     };
   }
+  const { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } = google;
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();

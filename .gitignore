@@ -1,0 +1,10 @@
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local
+**/.env
+!**/.env.example
+
+# macOS
+.DS_Store
+**/.DS_Store

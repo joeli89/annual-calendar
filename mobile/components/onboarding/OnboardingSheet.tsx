@@ -11,7 +11,8 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { footnote, fontFamilies } from '../../design-system';
+import { footnote } from '../../design-system';
+import { AcLogo } from '../AcLogo';
 import { track } from '../../lib/analytics';
 import {
   completeOnboarding,
@@ -347,9 +348,7 @@ export function OnboardingSheet({ dismiss, sessionRef }: Props) {
       content = (
         <View style={styles.authLayout}>
           <View style={styles.authHero}>
-            <View style={styles.bigMonogram}>
-              <Text style={styles.bigMonogramText}>AC</Text>
-            </View>
+            <AcLogo height={73} color={t.label} />
             <OnboardingTitle
               centered
               title="Join Annual Calendar"
@@ -587,19 +586,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 24,
-  },
-  bigMonogram: {
-    width: 64,
-    height: 92,
-    borderWidth: 3,
-    borderColor: t.label,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bigMonogramText: {
-    fontFamily: fontFamilies.titleBold,
-    fontSize: 28,
-    color: t.label,
   },
   authButtons: {
     gap: 12,

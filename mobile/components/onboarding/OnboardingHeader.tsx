@@ -1,14 +1,13 @@
 /**
  * Intent: Sheet header — back/close button top-left, AC monogram centred.
- * Why: Per Figma onboarding frames. The monogram is drawn in code because the
- * only logo asset (icon.png) has a baked-in beige background that would clash
- * with the white sheet; flagged as a design asset request.
+ * Why: Per Figma onboarding frames. Uses the shared AcLogo component, which
+ * renders the real transparent logo asset (assets/ac-logo.png).
  */
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { fontFamilies } from '../../design-system';
+import { AcLogo } from '../AcLogo';
 import { onboardingTokens as t } from './tokens';
 
 type Props = {
@@ -16,14 +15,6 @@ type Props = {
   buttonType: 'close' | 'back';
   onPress: () => void;
 };
-
-function AcMonogram() {
-  return (
-    <View style={styles.monogram}>
-      <Text style={styles.monogramText}>AC</Text>
-    </View>
-  );
-}
 
 export function OnboardingHeader({ buttonType, onPress }: Props) {
   return (
@@ -41,7 +32,7 @@ export function OnboardingHeader({ buttonType, onPress }: Props) {
           color={t.label}
         />
       </Pressable>
-      <AcMonogram />
+      <AcLogo height={33} color={t.label} />
       {/* Spacer mirrors the nav button so the monogram stays centred */}
       <View style={styles.navButtonSpacer} />
     </View>
@@ -71,18 +62,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
-  },
-  monogram: {
-    width: 28,
-    height: 40,
-    borderWidth: 1.5,
-    borderColor: t.label,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monogramText: {
-    fontFamily: fontFamilies.titleBold,
-    fontSize: 13,
-    color: t.label,
   },
 });

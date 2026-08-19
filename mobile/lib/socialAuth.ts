@@ -11,7 +11,7 @@
  *   ID URL scheme via the google-signin config plugin in app.json + Web client
  *   ID (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) registered in the Supabase dashboard.
  */
-import { Platform } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 
 import { supabase, isSupabaseConfigured } from './supabase';
 
@@ -46,8 +46,34 @@ function loadApple(): AppleModule | null {
   return appleModule;
 }
 
+/**
+ * Is a native module actually present in this binary?
+ *
+ * `TurboModuleRegistry.get` returns null when absent, unlike `getEnforcing`
+ * (which throws). The google-signin package calls `getEnforcing` at import
+ * time, so we probe FIRST and only require the wrapper once we know the
+ * native side exists — otherwise the throw escapes as a redbox even from
+ * inside a try/catch, because it happens during module initialisation.
+ */
+function nativeModuleExists(name: string): boolean {
+  try {
+    if (TurboModuleRegistry.get(name) != null) return true;
+  } catch {
+    // fall through to the legacy bridge check
+  }
+  try {
+    return (NativeModules as Record<string, unknown>)[name] != null;
+  } catch {
+    return false;
+  }
+}
+
 function loadGoogle(): GoogleModule | null {
   if (googleModule === undefined) {
+    if (!nativeModuleExists('RNGoogleSignin')) {
+      googleModule = null;
+      return googleModule;
+    }
     try {
       googleModule = require('@react-native-google-signin/google-signin') as GoogleModule;
     } catch {

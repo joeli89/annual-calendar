@@ -376,33 +376,39 @@ export function OnboardingSheet({ dismiss, sessionRef }: Props) {
     case 'name':
       content = (
         <View style={styles.stepLayout}>
-          <OnboardingTitle
-            title="What’s your name?"
-            subtitle="Allows us to get to know you"
-          />
-          <InputField
-            value={name}
-            onChangeText={setName}
-            placeholder="What should we call you?"
-            maxLength={NAME_MAX}
-            autoFocus
-          />
-          {errorBanner}
-          <PrimaryButton
-            label="Continue"
-            disabled={!nameValid}
-            loading={busy}
-            onPress={() =>
-              void persistStep({ display_name: name.trim() }, 'name', 'dob')
-            }
-          />
+          <View style={styles.stepBody}>
+            <OnboardingTitle
+              title="What’s your name?"
+              subtitle="Allows us to get to know you"
+            />
+            <InputField
+              value={name}
+              onChangeText={setName}
+              placeholder="What should we call you?"
+              maxLength={NAME_MAX}
+              autoFocus
+            />
+          
+          </View>
+          <View style={styles.stepFooter}>
+  {errorBanner}
+            <PrimaryButton
+              label="Continue"
+              disabled={!nameValid}
+              loading={busy}
+              onPress={() =>
+                void persistStep({ display_name: name.trim() }, 'name', 'dob')
+              }
+            />
+          </View>
         </View>
       );
       break;
     case 'dob':
       content = (
         <View style={styles.stepLayout}>
-          <OnboardingTitle
+          <View style={styles.stepBody}>
+            <OnboardingTitle
             title="What’s your DOB?"
             subtitle="Confirm you’re 18 or over"
           />
@@ -413,7 +419,7 @@ export function OnboardingSheet({ dismiss, sessionRef }: Props) {
                 items: dayItems,
                 selectedValue: String(dobDayNum),
                 onValueChange: setDobDay,
-                flex: 1,
+                flex: 0.9,
               },
               {
                 key: 'month',
@@ -427,15 +433,18 @@ export function OnboardingSheet({ dismiss, sessionRef }: Props) {
                 items: yearItems,
                 selectedValue: dobYear,
                 onValueChange: setDobYear,
-                flex: 1,
+                // Wider than day: a 4-digit year was being truncated to "19…".
+                flex: 1.3,
               },
             ]}
           />
-          <View style={styles.privacyRow}>
-            <Ionicons name="lock-closed" size={12} color={t.secondaryLabel} />
-            <Text style={styles.privacyText}>Your age is always private</Text>
           </View>
-          {!dobIs18Plus ? (
+          <View style={styles.stepFooter}>
+            <View style={styles.privacyRow}>
+              <Ionicons name="lock-closed" size={12} color={t.secondaryLabel} />
+              <Text style={styles.privacyText}>Your age is always private</Text>
+            </View>
+            {!dobIs18Plus ? (
             <Text style={styles.error}>
               You must be 18 or over to use Annual Calendar.
             </Text>
@@ -454,97 +463,113 @@ export function OnboardingSheet({ dismiss, sessionRef }: Props) {
               )
             }
           />
-          {renderSkip('dob', 'location')}
+            {renderSkip('dob', 'location')}
+          </View>
         </View>
       );
       break;
     case 'location':
       content = (
         <View style={styles.stepLayout}>
-          <OnboardingTitle
-            title="Where are you from?"
-            subtitle="Where do you live most of the time."
-          />
-          <InputField
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Where do you live most of the time?"
-            maxLength={LOCATION_MAX}
-          />
-          {errorBanner}
-          <PrimaryButton
-            label="Continue"
-            disabled={!locationValid}
-            loading={busy}
-            onPress={() =>
-              void persistStep(
-                { location: location.trim() },
-                'location',
-                'collection'
-              )
-            }
-          />
-          {renderSkip('location', 'collection')}
+          <View style={styles.stepBody}>
+            <OnboardingTitle
+              title="Where are you from?"
+              subtitle="Where do you live most of the time."
+            />
+            <InputField
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Where do you live most of the time?"
+              maxLength={LOCATION_MAX}
+            />
+          
+          </View>
+          <View style={styles.stepFooter}>
+  {errorBanner}
+            <PrimaryButton
+              label="Continue"
+              disabled={!locationValid}
+              loading={busy}
+              onPress={() =>
+                void persistStep(
+                  { location: location.trim() },
+                  'location',
+                  'collection'
+                )
+              }
+            />
+            {renderSkip('location', 'collection')}
+          </View>
         </View>
       );
       break;
     case 'collection':
       content = (
         <View style={styles.stepLayout}>
-          <OnboardingTitle
-            title="How many watches do you have in your collection?"
-            // Figma subtitle here is a copy-paste error ("Where do you live most
-            // of the time.") — omitted pending copy from Design.
-          />
-          <WheelPicker
-            columns={[
-              {
-                key: 'collection',
-                items: COLLECTION_SIZES.map((v) => ({ label: v, value: v })),
-                selectedValue: collectionSize,
-                onValueChange: setCollectionSize,
-              },
-            ]}
-          />
-          {errorBanner}
-          <PrimaryButton
-            label="Continue"
-            loading={busy}
-            onPress={() =>
-              void persistStep(
-                { collection_size: collectionSize },
-                'collection',
-                'brands'
-              )
-            }
-          />
-          {renderSkip('collection', 'brands')}
+          <View style={styles.stepBody}>
+            <OnboardingTitle
+              title="How many watches do you have in your collection?"
+              // Figma subtitle here is a copy-paste error ("Where do you live most
+              // of the time.") — omitted pending copy from Design.
+            />
+            <WheelPicker
+              columns={[
+                {
+                  key: 'collection',
+                  items: COLLECTION_SIZES.map((v) => ({ label: v, value: v })),
+                  selectedValue: collectionSize,
+                  onValueChange: setCollectionSize,
+                },
+              ]}
+            />
+          
+          </View>
+          <View style={styles.stepFooter}>
+  {errorBanner}
+            <PrimaryButton
+              label="Continue"
+              loading={busy}
+              onPress={() =>
+                void persistStep(
+                  { collection_size: collectionSize },
+                  'collection',
+                  'brands'
+                )
+              }
+            />
+            {renderSkip('collection', 'brands')}
+          </View>
         </View>
       );
       break;
     case 'brands':
       content = (
         <View style={styles.stepLayout}>
-          <OnboardingTitle
-            title="What are your favourite brands?"
-            subtitle="Select a minimum of 1"
-          />
-          <PillTagList
-            options={brandOptions.map((b) => ({ value: b.slug, label: b.name }))}
-            selected={brands}
-            onToggle={toggleBrand}
-            maxSelected={BRANDS_MAX}
-          />
-          {errorBanner}
-          <PrimaryButton
-            label="Continue"
-            disabled={!brandsValid}
-            loading={busy}
-            onPress={() =>
-              void persistStep({ favorite_brands: brands }, 'brands', 'done')
-            }
-          />
-          {renderSkip('brands', 'done')}
+          <View style={styles.stepBody}>
+            <OnboardingTitle
+              title="What are your favourite brands?"
+              subtitle="Select a minimum of 1"
+            />
+            <PillTagList
+              options={brandOptions.map((b) => ({ value: b.slug, label: b.name }))}
+              selected={brands}
+              onToggle={toggleBrand}
+              maxSelected={BRANDS_MAX}
+            />
+          
+          </View>
+          <View style={styles.stepFooter}>
+  {errorBanner}
+            <PrimaryButton
+              label="Continue"
+              disabled={!brandsValid}
+              loading={busy}
+              onPress={() =>
+                void persistStep({ favorite_brands: brands }, 'brands', 'done')
+              }
+            />
+            {renderSkip('brands', 'done')}
+          </View>
         </View>
       );
       break;
@@ -579,7 +604,8 @@ const styles = StyleSheet.create({
   authLayout: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingTop: 32,
+    paddingTop: 24,
+    paddingBottom: 8,
   },
   authHero: {
     flex: 1,
@@ -591,9 +617,22 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 16,
   },
+  /**
+   * Shared shell for EVERY step: content sits at the top, the CTA block is
+   * pinned to the bottom, with the space between them. Steps must not add
+   * their own layout nuance — keep them identical.
+   */
   stepLayout: {
-    gap: 24,
+    flex: 1,
+    justifyContent: 'space-between',
     paddingTop: 24,
+    paddingBottom: 8,
+  },
+  stepBody: {
+    gap: 24,
+  },
+  stepFooter: {
+    gap: 12,
   },
   privacyRow: {
     flexDirection: 'row',

@@ -75,8 +75,12 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         snapPoints={SNAP_POINTS}
         enablePanDownToClose
         enableDynamicSizing={false}
-        keyboardBehavior="interactive"
+        // "interactive" drags the whole sheet up with the keyboard, pushing the
+        // header off-screen. "extend" holds the sheet at its snap point and lets
+        // the scroll view handle the keyboard instead.
+        keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
         backdropComponent={Backdrop}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handleIndicator}

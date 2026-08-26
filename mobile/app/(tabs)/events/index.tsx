@@ -4,7 +4,6 @@
  * Events are loaded from Supabase when configured; otherwise mock data is used.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,12 +22,14 @@ import { Stack, useRouter } from 'expo-router';
 
 import { EventCard } from '../../../components/EventCard';
 import {
+  body,
   largeTitle,
   useAppTheme,
   type AppTheme,
 } from '../../../design-system';
 import { Event } from '../../../types/event';
 import { fetchEvents } from '../../../lib/eventsApi';
+import { countryOf, useEventFilters } from '../../../lib/eventFilters';
 
 const CARD_FADE_IN_OFFSET = 16;
 const CARD_FADE_IN_DURATION = 280;
@@ -66,18 +67,10 @@ export default function EventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const filterSheetRef = useRef<BottomSheetModal | null>(null);
-  const filterSnapPoints = useMemo(() => ['65%'], []);
+  const { applyFilters, hasActiveFilters, setCountryOptions } = useEventFilters();
 
   const handleOpenFilterSheet = () => {
-    // Debug: verify filter button taps and sheet ref wiring.
-    console.log('[EventsScreen] Filter button pressed');
-    if (!filterSheetRef.current) {
-      console.log('[EventsScreen] filterSheetRef is null');
-      return;
-    }
-    console.log('[EventsScreen] Presenting filter bottom sheet');
-    filterSheetRef.current.present();
+    router.push('/event-filters');
   };
 
   const loadEvents = useCallback(async () => {
@@ -110,7 +103,18 @@ export default function EventsScreen() {
     loadEvents();
   }, [loadEvents]);
 
-  const sections = useMemo(() => buildSections(events), [events]);
+  // Countries offered as filter chips — derived from the loaded events.
+  useEffect(() => {
+    const set = new Set<string>();
+    for (const event of events) {
+      const c = countryOf(event);
+      if (c) set.add(c);
+    }
+    setCountryOptions(Array.from(set).sort());
+  }, [events, setCountryOptions]);
+
+  const filteredEvents = useMemo(() => applyFilters(events), [applyFilters, events]);
+  const sections = useMemo(() => buildSections(filteredEvents), [filteredEvents]);
   const animationValuesRef = useRef(
     new Map<
       string,
@@ -214,6 +218,7 @@ export default function EventsScreen() {
                 name="person-circle-outline"
                 size={28}
                 color={tintColor ?? theme.labelColors.primary}
+              style={styles.headerButtonIcon}
               />
             </Pressable>
           ),
@@ -230,6 +235,7 @@ export default function EventsScreen() {
                 name="filter-outline"
                 size={24}
                 color={tintColor ?? theme.palette.headerButtonFallback}
+              style={styles.headerButtonIcon}
               />
             </Pressable>
           ),
@@ -285,6 +291,16 @@ export default function EventsScreen() {
           )}
           contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic"
+          ListEmptyComponent={
+            !loading && hasActiveFilters ? (
+              <View style={styles.emptyFilterState}>
+                <Text style={styles.emptyFilterTitle}>No events match</Text>
+                <Text style={styles.emptyFilterSubtitle}>
+                  Try adjusting or clearing your filters.
+                </Text>
+              </View>
+            ) : null
+          }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           onViewableItemsChanged={onViewableItemsChanged}
           showsVerticalScrollIndicator={false}
@@ -292,25 +308,6 @@ export default function EventsScreen() {
           viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
         />
       </View>
-      <BottomSheetModal
-        ref={filterSheetRef}
-        snapPoints={filterSnapPoints}
-        backgroundStyle={{ backgroundColor: theme.palette.card }}
-        handleIndicatorStyle={{ backgroundColor: theme.labelColors.quaternary }}
-      >
-        <View style={styles.filterSheetContent}>
-          <Text style={styles.filterSheetTitle}>Filters</Text>
-          <Text style={styles.filterSheetSubtitle}>
-            Filter options will appear here.
-          </Text>
-          <View style={styles.filterSheetDummyBlock}>
-            <Text style={styles.filterSheetDummyText}>
-              This is placeholder filter content so the bottom sheet is clearly
-              visible when opened.
-            </Text>
-          </View>
-        </View>
-      </BottomSheetModal>
     </>
   );
 }
@@ -361,6 +358,11 @@ function createStyles(theme: AppTheme) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    // Optical correction: the glyph font box carries descender space that
+    // sits it ~4pt low inside the native glass capsule.
+    headerButtonIcon: {
+      marginTop: -4,
+    },
     headerButton: {
       width: 44,
       height: 44,
@@ -381,29 +383,18 @@ function createStyles(theme: AppTheme) {
     headerButtonPressed: {
       opacity: 0.7,
     },
-    filterSheetContent: {
+    emptyFilterState: {
+      alignItems: 'center',
+      paddingTop: 96,
       paddingHorizontal: 24,
-      paddingTop: 16,
-      paddingBottom: 32,
       gap: 8,
     },
-    filterSheetTitle: {
-      ...largeTitle.regular,
+    emptyFilterTitle: {
+      ...body.emphasized,
       color: theme.labelColors.primary,
     },
-    filterSheetSubtitle: {
-      color: theme.labelColors.secondary,
-    },
-    filterSheetDummyBlock: {
-      marginTop: 16,
-      borderRadius: 16,
-      backgroundColor: theme.palette.cardMuted,
-      padding: 16,
-      minHeight: 200,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    filterSheetDummyText: {
+    emptyFilterSubtitle: {
+      ...body.regular,
       color: theme.labelColors.secondary,
       textAlign: 'center',
     },

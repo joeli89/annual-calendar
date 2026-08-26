@@ -24,6 +24,8 @@ export type Event = {
   imageUrls?: string[];
   /** Formatted full address for the Location section. */
   address?: string;
+  /** Country name, used by the Events filter. */
+  country?: string | null;
   /** Host/organizer name, e.g. "Watches & Wonders Geneva". */
   hostName?: string | null;
   /** Host/organizer logo or avatar URL. */

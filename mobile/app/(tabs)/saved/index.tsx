@@ -141,6 +141,7 @@ export default function SavedScreen() {
                   name="person-circle-outline"
                   size={28}
                   color={tintColor ?? theme.labelColors.primary}
+                style={styles.headerButtonIcon}
                 />
               </Pressable>
             ),
@@ -196,6 +197,7 @@ export default function SavedScreen() {
                 name="person-circle-outline"
                 size={28}
                 color={tintColor ?? theme.labelColors.primary}
+              style={styles.headerButtonIcon}
               />
             </Pressable>
           ),
@@ -213,6 +215,7 @@ export default function SavedScreen() {
                 name="filter-outline"
                 size={24}
                 color={tintColor ?? theme.palette.headerButtonFallback}
+              style={styles.headerButtonIcon}
               />
             </Pressable>
           ),
@@ -336,6 +339,11 @@ function createStyles(theme: AppTheme) {
     ctaLabel: {
       ...body.emphasized,
       color: theme.palette.primaryButtonText,
+    },
+    // Optical correction: the glyph font box carries descender space that
+    // sits it ~4pt low inside the native glass capsule.
+    headerButtonIcon: {
+      marginTop: -4,
     },
     headerButton: {
       width: 44,

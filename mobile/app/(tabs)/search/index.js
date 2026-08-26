@@ -221,6 +221,7 @@ export default function SearchScreen() {
                 name="person-circle-outline"
                 size={28}
                 color={tintColor ?? theme.labelColors.primary}
+                style={styles.headerButtonIcon}
               />
             </Pressable>
           ),
@@ -438,6 +439,11 @@ function createStyles(theme) {
       ...body.regular,
       color: theme.labelColors.secondary,
       textAlign: 'center',
+    },
+    // Optical correction: the glyph's font box carries descender space that
+    // sits it ~4pt low inside the native glass capsule.
+    headerButtonIcon: {
+      marginTop: -4,
     },
     headerButton: {
       width: 44,

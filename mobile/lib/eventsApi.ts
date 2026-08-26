@@ -75,6 +75,7 @@ function rowToEvent(row: EventsRow): Event {
       : {}),
     imageUrls,
     address: formatAddress(row),
+    country: row.country,
     hostName: row.host_name,
     hostLogoUrl: row.host_logo_url,
     visibility: row.visibility === 'private' ? 'private' : 'public',

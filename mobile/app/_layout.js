@@ -11,6 +11,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { OnboardingProvider } from '../components/onboarding/OnboardingContext';
 import { useAppTheme } from '../design-system';
 import { isAuthCallbackUrl, setSessionFromAuthUrl } from '../lib/auth';
+import { EventFiltersProvider } from '../lib/eventFilters';
 import { SaveIntentProvider } from '../lib/saveIntent';
 import { AuthProvider } from '../lib/useAuth';
 
@@ -65,6 +66,7 @@ export default function RootLayout() {
       <DeepLinkHandler />
       <BottomSheetModalProvider>
         <OnboardingProvider>
+        <EventFiltersProvider>
         <StatusBar style={statusBarStyle} />
         <Stack
           screenOptions={{
@@ -85,7 +87,27 @@ export default function RootLayout() {
           />
           {/* Card sheets per Figma: dimmed underlying screen + grabber. */}
           <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
+          {/* Half-height native sheet; filters apply live via EventFiltersProvider. */}
+          <Stack.Screen
+            name="event-filters"
+            options={{
+              presentation: 'formSheet',
+              sheetAllowedDetents: 'fitToContents',
+              sheetGrabberVisible: true,
+            }}
+          />
           <Stack.Screen name="account" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="edit-collection-size"
+            options={{ presentation: 'modal' }}
+          />
+          <Stack.Screen name="edit-brands" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="edit-name" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="edit-dob" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="edit-location"
+            options={{ presentation: 'modal' }}
+          />
           <Stack.Screen
             name="auth"
             options={{
@@ -99,6 +121,7 @@ export default function RootLayout() {
             options={{ headerShown: false, gestureEnabled: false }}
           />
         </Stack>
+        </EventFiltersProvider>
         </OnboardingProvider>
       </BottomSheetModalProvider>
       </SaveIntentProvider>

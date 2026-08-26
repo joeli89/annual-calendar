@@ -64,6 +64,21 @@ export async function signOut(): Promise<{ error?: string }> {
   return error ? { error: error.message } : {};
 }
 
+/**
+ * Permanently delete the signed-in user's account via the delete_account RPC
+ * (security-definer SQL function; profile/favorites rows cascade), then clear
+ * the local session.
+ */
+export async function deleteAccount(): Promise<{ error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) {
+    return { error: 'Not configured' };
+  }
+  const { error } = await supabase.rpc('delete_account');
+  if (error) return { error: error.message };
+  await supabase.auth.signOut();
+  return {};
+}
+
 // ---------- magic-link callback parsing ----------
 
 /** Read a param from either the query string or the hash fragment of a URL. */

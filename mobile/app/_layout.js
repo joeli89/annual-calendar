@@ -83,6 +83,9 @@ export default function RootLayout() {
               headerBackButtonDisplayMode: 'minimal',
             }}
           />
+          {/* Card sheets per Figma: dimmed underlying screen + grabber. */}
+          <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="account" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="auth"
             options={{

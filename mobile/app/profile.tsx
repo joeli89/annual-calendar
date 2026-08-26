@@ -5,8 +5,9 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import * as Linking from 'expo-linking';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GroupedCard, GroupedRow, SectionLabel } from '../components/GroupedList';
@@ -42,25 +43,28 @@ export default function ProfileScreen() {
     new Map(),
   );
 
-  useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const [p, brands] = await Promise.all([
-        getOnboardingProfile(),
-        fetchWatchBrands(),
-      ]);
-      if (cancelled) return;
-      setProfile(p);
-      setBrandNamesBySlug(new Map(brands.map((b) => [b.slug, b.name])));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+  // Refetch on focus so values edited on the stacked screens show up on return.
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+      let cancelled = false;
+      (async () => {
+        const [p, brands] = await Promise.all([
+          getOnboardingProfile(),
+          fetchWatchBrands(),
+        ]);
+        if (cancelled) return;
+        setProfile(p);
+        setBrandNamesBySlug(new Map(brands.map((b) => [b.slug, b.name])));
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [user]),
+  );
 
   const favouriteBrandsValue = useMemo(() => {
     const slugs = profile?.favorite_brands ?? [];
@@ -123,12 +127,16 @@ export default function ProfileScreen() {
 
             <SectionLabel>Your collection</SectionLabel>
             <GroupedCard style={styles.sectionCard}>
-              {/* Editing these reuses onboarding later; chevrons per design. */}
               <GroupedRow
                 label="Collection size"
                 value={profile?.collection_size ?? '—'}
+                onPress={() => router.push('/edit-collection-size')}
               />
-              <GroupedRow label="Favourite brands" value={favouriteBrandsValue} />
+              <GroupedRow
+                label="Favourite brands"
+                value={favouriteBrandsValue}
+                onPress={() => router.push('/edit-brands')}
+              />
             </GroupedCard>
           </>
         ) : (
@@ -151,9 +159,15 @@ export default function ProfileScreen() {
 
         <SectionLabel>About</SectionLabel>
         <GroupedCard style={styles.sectionCard}>
-          {/* Destinations for these three are not specced yet — rows render
-              per design and will link out once product provides URLs. */}
-          <GroupedRow label="Share feedback" icon="chatbubble-ellipses-outline" />
+          <GroupedRow
+            label="Share feedback"
+            icon="chatbubble-ellipses-outline"
+            onPress={() => {
+              // Rejects when no mail app is available (e.g. simulator).
+              Linking.openURL('mailto:justin@justinhast.com').catch(() => {});
+            }}
+          />
+          {/* Terms/Privacy destinations are not live yet per product. */}
           <GroupedRow label="Terms of use" icon="document-text-outline" />
           <GroupedRow label="Privacy policy" icon="lock-closed-outline" />
           <GroupedRow

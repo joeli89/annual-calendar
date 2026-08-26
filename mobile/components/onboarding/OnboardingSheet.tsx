@@ -27,6 +27,7 @@ import { signInWithApple, signInWithGoogle } from '../../lib/socialAuth';
 import { useAuth } from '../../lib/useAuth';
 import { InputField } from './InputField';
 import { OnboardingHeader } from './OnboardingHeader';
+import { MONTHS, daysInMonth, isAtLeast18, toIsoDate } from './dob';
 import { OnboardingTitle } from './OnboardingTitle';
 import { PillTagList } from './PillTagList';
 import { PrimaryButton } from './PrimaryButton';
@@ -53,37 +54,6 @@ const PROFILE_STEPS: OnboardingStep[] = [
 const NAME_MAX = 50;
 const LOCATION_MAX = 100;
 const BRANDS_MAX = 6;
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-function daysInMonth(month: number, year: number): number {
-  return new Date(year, month, 0).getDate();
-}
-
-function isAtLeast18(year: number, month: number, day: number): boolean {
-  const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 18);
-  return new Date(year, month - 1, day) <= cutoff;
-}
-
-function toIsoDate(year: number, month: number, day: number): string {
-  const mm = String(month).padStart(2, '0');
-  const dd = String(day).padStart(2, '0');
-  return `${year}-${mm}-${dd}`;
-}
 
 /** First profile step the user has not answered yet. Null = all answered. */
 function firstUnansweredStep(profile: OnboardingProfile): OnboardingStep | null {

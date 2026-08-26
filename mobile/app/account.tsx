@@ -4,8 +4,8 @@
  * Why: Give signed-in users one place to review their details and leave.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -45,15 +45,18 @@ export default function AccountScreen() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    getOnboardingProfile().then((p) => {
-      if (!cancelled) setProfile(p);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Refetch on focus so values edited on the stacked screens show up on return.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      getOnboardingProfile().then((p) => {
+        if (!cancelled) setProfile(p);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const initial =
     (profile?.display_name?.trim() || user?.email || '?')[0].toUpperCase();
@@ -135,13 +138,21 @@ export default function AccountScreen() {
         </View>
 
         <GroupedCard style={styles.detailsCard}>
-          {/* Field editing screens aren't designed yet; values are read-only. */}
-          <GroupedRow label="Name" value={profile?.display_name ?? '—'} />
+          <GroupedRow
+            label="Name"
+            value={profile?.display_name ?? '—'}
+            onPress={() => router.push('/edit-name')}
+          />
           <GroupedRow
             label="Date of birth"
             value={formatDob(profile?.date_of_birth ?? null) ?? '—'}
+            onPress={() => router.push('/edit-dob')}
           />
-          <GroupedRow label="Location" value={profile?.location ?? '—'} />
+          <GroupedRow
+            label="Location"
+            value={profile?.location ?? '—'}
+            onPress={() => router.push('/edit-location')}
+          />
         </GroupedCard>
 
         <View style={styles.actions}>

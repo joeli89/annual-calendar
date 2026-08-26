@@ -1,10 +1,12 @@
 /**
  * Intent: Text input (345x64, secondary fill) for name/location steps.
- * Why: Uses BottomSheetTextInput so the sheet manages keyboard avoidance.
+ * Why: Uses BottomSheetTextInput inside the onboarding sheet so the sheet
+ * manages keyboard avoidance; a plain TextInput elsewhere (the Account edit
+ * screens), because BottomSheetTextInput throws outside a BottomSheet.
  */
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 
 import { body } from '../../design-system';
 import { onboardingTokens as t } from './tokens';
@@ -16,6 +18,8 @@ type Props = {
   maxLength?: number;
   autoFocus?: boolean;
   onSubmitEditing?: () => void;
+  /** True when rendered outside the onboarding bottom sheet. */
+  standalone?: boolean;
 };
 
 export function InputField({
@@ -25,9 +29,11 @@ export function InputField({
   maxLength,
   autoFocus,
   onSubmitEditing,
+  standalone,
 }: Props) {
+  const InputComponent = standalone ? TextInput : BottomSheetTextInput;
   return (
-    <BottomSheetTextInput
+    <InputComponent
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}

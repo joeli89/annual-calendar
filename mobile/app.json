@@ -14,6 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "buildNumber": "4",
       "supportsTablet": true,
       "userInterfaceStyle": "automatic",
       "bundleIdentifier": "app.annualcalendar.mobile",

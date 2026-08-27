@@ -8,9 +8,14 @@
  */
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 
+import { useAppTheme } from '../design-system';
+
 export function TabBar() {
+  const theme = useAppTheme();
   return (
-    <NativeTabs tintColor="black">
+    // Theme-aware tint: a hardcoded black active tab disappears against the
+    // dark-mode glass bar.
+    <NativeTabs tintColor={theme.isDark ? 'white' : 'black'}>
       <NativeTabs.Trigger name="events">
         <Icon sf={{ default: 'calendar', selected: 'calendar' }} />
         <Label>Events</Label>

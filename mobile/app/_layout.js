@@ -76,7 +76,14 @@ export default function RootLayout() {
         >
           <Stack.Screen
             name="(tabs)"
-            options={{ title: '', headerBackTitleVisible: false }}
+            options={{
+              title: '',
+              headerBackTitleVisible: false,
+              // The root index route redirects here on launch; without this the
+              // redirect plays the default push transition, so the whole app
+              // slides in from the right after the splash screen.
+              animation: 'none',
+            }}
           />
           <Stack.Screen
             name="events/[id]"

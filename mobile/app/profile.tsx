@@ -38,6 +38,14 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const { openOnboarding } = useOnboarding();
 
+  // The onboarding bottom sheet portals to the ROOT view hierarchy, so it
+  // would present underneath this screen's native modal. Dismiss the modal
+  // first, then open the sheet over the tabs once the dismissal has run.
+  const handleSignIn = () => {
+    router.back();
+    setTimeout(openOnboarding, 450);
+  };
+
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [brandNamesBySlug, setBrandNamesBySlug] = useState<Map<string, string>>(
     new Map(),
@@ -146,7 +154,7 @@ export default function ProfileScreen() {
               Sign in to save events and build your collection.
             </Text>
             <Pressable
-              onPress={openOnboarding}
+              onPress={handleSignIn}
               style={({ pressed }) => [
                 styles.signInButton,
                 pressed && styles.pressedDim,
